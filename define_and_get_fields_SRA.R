@@ -119,9 +119,9 @@ search.field <- function(column, field) {
         ': (.*?)\\|?\\|?.*?')
     res <- sub(r, "\\1", column, perl = TRUE, ignore.case = TRUE)
     unlist(lapply(res, function(x) 
-        if(grepl(".*\\|\\|.*", x) == TRUE){
+        if(grepl(".*\\|\\|.*", x) == TRUE) {
             return(NA)
-        } else{
+        } else {
             return(x)
         })
     )
