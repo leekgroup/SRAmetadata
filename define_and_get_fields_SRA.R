@@ -7,9 +7,9 @@ library('RSQLite')
 # Update sql if necessary:
 sra.meta <- file.path('..', 'SRAmetadb.sqlite') # Using the file from another location to avoid having copies of this 2.4 Gb file
 if(file.exists(sra.meta)) {
-  sqlfile <- sra.meta
+    sqlfile <- sra.meta
 } else {
-  sqlfile <- getSRAdbFile()
+    sqlfile <- getSRAdbFile()
 }
 
 # Create connection
