@@ -1,11 +1,11 @@
 # Load library
-library(RSQLite)
+library('RSQLite')
 
 # Define functions
-"%p%" = function(x, y) paste(x, y, sep = "")
+"%p%"  <- function(x, y) paste(x, y, sep = "")
 
 # Update sql if necessary:
-sra.meta <- "../SRAmetadb.sqlite" # Using the file from another location to avoid having copies of this 2.4 Gb file
+sra.meta <- file.path('..', 'SRAmetadb.sqlite') # Using the file from another location to avoid having copies of this 2.4 Gb file
 if(file.exists(sra.meta)) {
   sqlfile <- sra.meta
 } else {
@@ -17,7 +17,7 @@ sra_con <- dbConnect(SQLite(),sqlfile)
 
 # Query database
 timeStart <- proc.time()
-query = "SELECT exp.experiment_accession, exp.study_accession, exp.sample_accession, ru.run_accession,
+query <- "SELECT exp.experiment_accession, exp.study_accession, exp.sample_accession, ru.run_accession,
 sam.broker_name 'sam.broker_nam',
 sam.center_name 'sam.center_name',
 sam.taxon_id,
@@ -89,7 +89,7 @@ selected <- dbGetQuery(sra_con, query)
 print("Consumed time of query:")
 proc.time() - timeStart
 
-query =  paste("SELECT run_accession, file_name, md5, bytes,sradb_updated FROM fastq WHERE run_accession IN ('", 
+query<- paste("SELECT run_accession, file_name, md5, bytes,sradb_updated FROM fastq WHERE run_accession IN ('", 
                paste(selected$run_accession, collapse="', '"), "')", sep = "")
 fastq_namefiles <- dbGetQuery(sra_con, query)
 
@@ -132,7 +132,8 @@ metadata$strain <- search.field(metadata$sample_attribute, "Strain")
 metadata$source_name <- search.field(metadata$sample_attribute, "source_name")
 
 # Write table with all Illimina data
-write.table(metadata, "./all_illumina_sra.txt", sep = "\t", quote = FALSE, row.names = F)
+write.table(metadata, "all_illumina_sra.txt", sep = "\t", quote = FALSE,
+    row.names = FALSE)
 
 # Create new database
 meta_con <- dbConnect(SQLite(), dbname = "test.sqlite")
@@ -145,7 +146,7 @@ fields <- sub("\\.", "__", colnames(metadata))
 ids <- paste(fields[1:4], " varchar(255) not NULL,", sep = "", collapse = " ")
 registers <- paste(fields[5:length(fields)], "longtext default 'NA'", sep = " ", collapse = ", ")
 
-query = "CREATE TABLE " %p% table_name %p% "(" %p% 
+query <- "CREATE TABLE " %p% table_name %p% "(" %p% 
   primary_key_name %p% " int unsigned auto_increment not NULL," %p%
   ids %p% registers %p% ");"
 
