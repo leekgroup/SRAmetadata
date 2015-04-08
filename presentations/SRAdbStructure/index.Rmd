@@ -278,7 +278,7 @@ dbDisconnect(sra_con)
 ---
 ```{r results = 'asis', message = FALSE}
 options(width = 120)
-devtools::session_info()
+devtools::session_info()$packages
 ```
 
 
