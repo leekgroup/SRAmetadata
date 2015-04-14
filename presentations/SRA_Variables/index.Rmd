@@ -1,0 +1,284 @@
+---
+title: SRA variables
+author: José Alquicira Hernández
+highlighter: highlight.js
+job: null
+mode: selfcontained
+hitheme: tomorrow
+subtitle: 
+framework: io2012
+widgets: []
+---
+
+# Relevant variables in sample table
+```{r echo = FALSE, results='hide'}
+## Exploring SRA database
+
+# Load library
+library('RSQLite')
+library('magrittr')
+
+
+# Define functions
+"%p%"  <- function(x, y) paste0(x, y)
+
+# Update sql if necessary:
+sqlfile <- file.path('../..', 'SRAmetadb.sqlite') # Using the file from another location to avoid having copies of this 2.4 Gb file
+
+# Create connection
+sra_con <- dbConnect(SQLite(),sqlfile)
+
+# Query database
+timeStart <- proc.time()
+
+query <- "SELECT 
+experiment_accession, study_accession, sample_accession, 
+run_accession, submission_accession,
+sample_attribute,
+experiment_attribute
+FROM sra
+WHERE platform = 'ILLUMINA' AND
+study_type = 'Transcriptome Analysis' AND
+taxon_id = 9606;"
+selected <- dbGetQuery(sra_con, query)
+metadata <- selected
+#save(metadata, file = "attributes_human_sra")
+
+
+search.field <- function(column, field) {
+    temp <- rep('NA', length(column))
+    pos <- grep(paste0('.*', field, ':.*'), column, ignore.case = FALSE)
+    temp[pos]<- as.numeric(pos)
+    for(x in temp){
+        if(x != 'NA'){
+            x <- as.numeric(x)
+            f <- sub(".*" %p% field %p% ": ", "", grep('.*' %p% field %p% ':.*',
+                                                       unlist(strsplit(column[x], "||", fixed = TRUE)), 
+                                                       perl = TRUE, value = TRUE, ignore.case = TRUE)[1], 
+                     perl = TRUE,  
+                     ignore.case = TRUE)
+            temp[x]<- sub(" $",'', f)        
+        } 
+    }
+    return(unlist(temp))
+}
+
+# Get cell type
+metadata$cell_type <- search.field(metadata$sample_attribute, "cell type")
+
+# Get tissue
+metadata$tissue <- search.field(metadata$sample_attribute, "tissue")
+
+# Get cell line
+metadata$cell_line <- search.field(metadata$sample_attribute, "cell line")
+
+# Get age
+metadata$age <- search.field(metadata$sample_attribute, "age")
+
+# Get disease
+metadata$disease <- search.field(metadata$sample_attribute, "disease")
+
+
+
+# Get population
+metadata$population <- sub('hapmap ','', search.field(metadata$sample_attribute, "population"), 
+                           ignore.case = TRUE)
+
+metadata$race <- search.field(metadata$sample_attribute, "race")
+
+
+metadata$population <- ifelse((metadata$population == 'NA') & (metadata$race == 'NA'),'NA',
+                       ifelse(metadata$population == 'NA', metadata$race, metadata$population))
+
+metadata$race <- NULL
+
+# Get sex of individuals
+metadata$sex <- search.field(metadata$sample_attribute, "sex") %>%
+    sub('^male$', 'M', ., ignore.case = TRUE) %>% 
+    sub('^female$', 'F', . , ignore.case = TRUE) %>%
+    sub('not_documented', 'NA', . , fixed = TRUE) %>%
+    sub('not determined', 'NA', . , fixed = TRUE) %>%
+    sub('not applicable', 'NA', . , fixed = TRUE) %>%
+    sub('Unknown', 'NA', . , fixed = TRUE) %>%
+    sub('not collected', 'NA', . , fixed = TRUE) %>%
+    sub('U', 'NA', . , fixed = TRUE) %>%
+    sub('missing','NA', . , fixed = TRUE) %>%
+    sub('asexual', 'NA', . , fixed = TRUE) %>%
+    sub('mixed sex', 'B', . , fixed = TRUE) %>%
+    sub('1 Male, 2 Female', 'M, FF', . , fixed = TRUE) %>%
+    sub('2 Male, 1 Female', 'MM, F', . , fixed = TRUE) %>%
+    sub('3 Female', 'FFF', . , fixed = TRUE)
+
+# Get gender
+metadata$gender <- search.field(metadata$sample_attribute, "gender") %>%
+    sub('^male$', 'M', ., ignore.case = TRUE) %>% 
+    sub('^female$', 'F', . , ignore.case = TRUE) %>%
+    sub('MAL', 'M', . , fixed = TRUE) %>%
+    sub('FEM', 'F', . , fixed = TRUE) %>%
+    sub('XY', 'M', . , fixed = TRUE) %>%
+    sub('XX', 'F', . , fixed = TRUE) %>%
+    sub('not_documented', 'NA', . , fixed = TRUE)  %>%
+    sub('--', 'NA', . , fixed = TRUE) %>%
+    sub('3 Female', 'FFF', . , fixed = TRUE) %>%
+    sub('N/A', 'NA', . , fixed = TRUE)
+
+
+metadata$sex <- ifelse((metadata$sex == 'NA') & (metadata$gender == 'NA'),'NA',
+       ifelse(metadata$sex == 'NA', metadata$gender, metadata$sex))
+
+metadata$gender <- NULL
+
+# Get source type of samples
+metadata$source_name <- search.field(metadata$sample_attribute, "source_name")
+
+colnames(metadata)[8:length(colnames(metadata))]
+```
+
+```{r echo = FALSE, results='asis'}
+
+knitr::kable(colnames(metadata)[8:length(colnames(metadata))], col.names = "Variables")
+
+```
+
+---
+
+# Cell type
+```{r echo = FALSE, results='asis'}
+
+m <- sort(table(metadata$cell_type), decreasing = TRUE)
+m <- as.matrix(m[names(m) != 'NA']); colnames(m) <- "N° of samples"
+dynamic_table <- DT::datatable(m, filter = 'top', options = list(pageLength = 8, autoWidth = TRUE))
+DT::saveWidget(dynamic_table, 'cell_type.html')
+print("Total number of samples:" %p% " " %p% sum(m))
+cat('<iframe src="cell_type.html"> </iframe>')
+
+
+
+
+```
+
+---
+
+# Tissue
+```{r echo = FALSE, results='asis'}
+
+m <- sort(table(metadata$tissue), decreasing = TRUE)
+m <- as.matrix(m[names(m) != 'NA']); colnames(m) <- "N° of samples"
+
+dynamic_table <- DT::datatable(m, filter = 'top', options = list(pageLength = 8, autoWidth = TRUE))
+DT::saveWidget(dynamic_table, 'tissue.html')
+print("Total number of samples:" %p% " " %p% sum(m))
+cat('<iframe src="tissue.html"> </iframe>')
+
+
+```
+
+---
+
+# Cell line
+```{r echo = FALSE, results='asis'}
+
+m <- sort(table(metadata$cell_line), decreasing = TRUE)
+m <- as.matrix(m[names(m) != 'NA']); colnames(m) <- "N° of samples"
+
+dynamic_table <- DT::datatable(m, filter = 'top', options = list(pageLength = 8, autoWidth = TRUE))
+DT::saveWidget(dynamic_table, 'cell_line.html')
+print("Total number of samples:" %p% " " %p% sum(m))
+cat('<iframe src="cell_line.html"> </iframe>')
+
+
+```
+
+---
+
+# Age
+```{r echo = FALSE, results='asis'}
+
+m <- sort(table(metadata$age), decreasing = TRUE)
+m <- as.matrix(m[names(m) != 'NA']); colnames(m) <- "N° of samples"
+m <- as.matrix(m[rownames(m) != "n/a",]); m <- as.matrix(m[rownames(m) != "N/A",]); colnames(m) <- "N° of samples"
+dynamic_table <- DT::datatable(m, filter = 'top', options = list(pageLength = 8, autoWidth = TRUE))
+DT::saveWidget(dynamic_table, 'age.html')
+print("Total number of samples:" %p% " " %p% sum(m))
+cat('<iframe src="age.html"> </iframe>')
+
+
+```
+
+---
+
+# Disease
+```{r echo = FALSE, results='asis'}
+
+m <- sort(table(metadata$disease), decreasing = TRUE)
+m <- as.matrix(m[names(m) != 'NA']); colnames(m) <- "N° of samples"
+
+dynamic_table <- DT::datatable(m, filter = 'top', options = list(pageLength = 8, autoWidth = TRUE))
+DT::saveWidget(dynamic_table, 'disease.html')
+print("Total number of samples:" %p% " " %p% sum(m))
+cat('<iframe src="disease.html"> </iframe>')
+
+
+```
+
+---
+
+
+# Population
+```{r echo = FALSE, results='asis'}
+
+m <- sort(table(metadata$population), decreasing = TRUE)
+m <- as.matrix(m[names(m) != 'NA']); colnames(m) <- "N° of samples"
+
+dynamic_table <- DT::datatable(m, filter = 'top', options = list(pageLength = 8, autoWidth = TRUE))
+DT::saveWidget(dynamic_table, 'population.html')
+print("Total number of samples:" %p% " " %p% sum(m))
+cat('<iframe src="population.html"> </iframe>')
+
+
+```
+
+---
+
+# Sex
+```{r echo = FALSE, results='asis'}
+
+m <- sort(table(metadata$sex), decreasing = TRUE)
+m <- as.matrix(m[names(m) != 'NA']); colnames(m) <- "N° of samples"
+
+dynamic_table <- DT::datatable(m, filter = 'top', options = list(pageLength = 8, autoWidth = TRUE))
+DT::saveWidget(dynamic_table, 'sex.html')
+print("Total number of samples:" %p% " " %p% sum(m))
+cat('<iframe src="sex.html"> </iframe>')
+
+
+```
+
+---
+
+# Source name
+```{r echo = FALSE, results='asis'}
+
+m <- sort(table(metadata$source_name), decreasing = TRUE)
+m <- as.matrix(m[names(m) != 'NA']); colnames(m) <- "N° of samples"
+
+dynamic_table <- DT::datatable(m, filter = 'top', options = list(pageLength = 8, autoWidth = TRUE))
+DT::saveWidget(dynamic_table, 'source_name.html')
+print("Total number of samples:" %p% " " %p% sum(m))
+cat('<iframe src="source_name.html"> </iframe>')
+
+
+```
+
+---
+```{r results = 'hide', message = FALSE}
+options(width = 120)
+dbDisconnect(sra_con)
+```
+
+```{r results = 'asis', message = FALSE}
+devtools::session_info()$packages
+```
+
+
+
