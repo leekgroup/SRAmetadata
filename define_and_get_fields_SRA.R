@@ -59,8 +59,7 @@ quality_scorer,
 number_of_levels,
 multiplier,
 qtype,
-experiment_attribute,
-submission_accession
+experiment_attribute
 FROM sra
 WHERE platform = 'ILLUMINA' AND
 study_type = 'Transcriptome Analysis' AND
@@ -194,4 +193,3 @@ write.table(metadata, "all_illumina_sra_for_human.txt", sep = "\t", quote = FALS
 
 # Disconnect from db
 dbDisconnect(sra_con)
-
