@@ -1,24 +1,18 @@
 # Load library
 library('RSQLite')
+library('magrittr')
 
 # Define functions
 "%p%"  <- function(x, y) paste0(x, y)
 
 # Update sql if necessary:
-sra.meta <- file.path('..', 'SRAmetadb.sqlite') # Using the file from another location to avoid having copies of this 2.4 Gb file
-if(file.exists(sra.meta)) {
-  sqlfile <- sra.meta
-} else {
-  sqlfile <- getSRAdbFile()
-}
+sqlfile <- file.path('..', 'SRAmetadb.sqlite') # Using the file from another location to avoid having copies of this 2.4 Gb file
 
 # Create connection
 sra_con <- dbConnect(SQLite(),sqlfile)
 
 # Query database
-timeStart <- proc.time()
-
-query <- "SELECT 
+query <- "SELECT  
 experiment_accession, study_accession, sample_accession, 
 run_accession, submission_accession,
 taxon_id,
@@ -69,61 +63,126 @@ experiment_attribute,
 submission_accession
 FROM sra
 WHERE platform = 'ILLUMINA' AND
-taxon_id = 9606"
-selected <- dbGetQuery(sra_con, query)
-print("Consumed time of query:")
-proc.time() - timeStart
+study_type = 'Transcriptome Analysis' AND
+taxon_id = 9606;"
 
+selected <- dbGetQuery(sra_con, query)
 query <- paste0("SELECT run_accession, file_name, md5, bytes,sradb_updated FROM fastq WHERE run_accession IN ('", 
                 paste(selected$run_accession, collapse="', '"), "')")
 fastq_namefiles <- dbGetQuery(sra_con, query)
-
 metadata <- merge(selected, fastq_namefiles, by = "run_accession")
-get.fastq.urls <- function(df) {
-  url <- rep(NA, length(df$run_accession))
-  for(i in 1:length(df$run_accession)) {
-    run <- df$run_accession[i]
-    filename <- df$file_name[i]
-    if(nchar(run) < 10) {
-      url[i] <- file.path('ftp://ftp.sra.ebi.ac.uk/vol1/fastq',
-                          substring(run, 1, 6), run, filename)
-    } else {
-      dir2 <- paste( c(rep(x='0', 12-nchar(run)), substring(run, 10, 
-                                                            nchar(run))), collapse = '' )
-      url[i] <- file.path('ftp://ftp.sra.ebi.ac.uk/vol1/fastq', 
-                          substring(run, 1, 6), dir2, run, filename)
-    }  
-  }
-  return(url)
-}
 
-# Getting URL to fastq files
+get.fastq.urls <- function(df) {
+    url <- rep(NA, length(df$run_accession))
+    for(i in 1:length(df$run_accession)) {
+        run <- df$run_accession[i]
+        filename <- df$file_name[i]
+        if(nchar(run) < 10) {
+            url[i] <- file.path('ftp://ftp.sra.ebi.ac.uk/vol1/fastq',
+                                substring(run, 1, 6), run, filename)
+        } else {
+            dir2 <- paste( c(rep(x='0', 12-nchar(run)), substring(run, 10, 
+                                                                  nchar(run))), collapse = '' )
+            url[i] <- file.path('ftp://ftp.sra.ebi.ac.uk/vol1/fastq', 
+                                substring(run, 1, 6), dir2, run, filename)
+        }  
+    }
+    return(url)
+}
 metadata$URL <- get.fastq.urls(metadata)
 
 search.field <- function(column, field) {
-  r <- paste0('.*\\|?\\|?', field,': (.*?) \\|?\\|.*|.*\\|?\\|?', field,
-              ': (.*?)\\|?\\|?.*?')
-  res <- sub(r, "\\1", column, perl = TRUE, ignore.case = TRUE)
-  unlist(lapply(res, function(x) 
-    if(grepl(".*\\|\\|.*", x) == TRUE) {
-      return(NA)
-    } else {
-      return(x)
-    })
-  )
+    temp <- rep('NA', length(column))
+    pos <- grep(paste0('.*', field, ':.*'), column, ignore.case = FALSE)
+    temp[pos]<- as.numeric(pos)
+    for(x in temp){
+        if(x != 'NA'){
+            x <- as.numeric(x)
+            f <- sub(".*" %p% field %p% ": ", "", grep('.*' %p% field %p% ':.*',
+                                                       unlist(strsplit(column[x], "||", fixed = TRUE)), 
+                                                       perl = TRUE, value = TRUE, ignore.case = TRUE)[1], 
+                     perl = TRUE,  
+                     ignore.case = TRUE)
+            temp[x]<- sub(" $",'', f)        
+        } 
+    }
+    return(unlist(temp))
 }
 
-# Get population
-metadata$population <- search.field(metadata$sample_attribute, "population")
 
-# Get cell line / ID for individuals
+
+# Get cell type
+metadata$cell_type <- search.field(metadata$sample_attribute, "cell type")
+
+# Get tissue
+metadata$tissue <- search.field(metadata$sample_attribute, "tissue")
+
+# Get cell line
 metadata$cell_line <- search.field(metadata$sample_attribute, "cell line")
 
+# Get strain
+metadata$strain <- search.field(metadata$sample_attribute, "Strain")
+
+# Get age
+metadata$age <- search.field(metadata$sample_attribute, "age")
+
+# Get disease
+metadata$disease <- search.field(metadata$sample_attribute, "disease")
+
+
+
+# Get population
+metadata$population <- sub('hapmap ','', search.field(metadata$sample_attribute, "population"), 
+                           ignore.case = TRUE)
+# Get race
+metadata$race <- search.field(metadata$sample_attribute, "race")
+
+
+metadata$population <- ifelse((metadata$population == 'NA') & (metadata$race == 'NA'),'NA',
+                       ifelse(metadata$population == 'NA', metadata$race, metadata$population))
+
+metadata$race <- NULL
+
 # Get sex of individuals
-metadata$sex <- search.field(metadata$sample_attribute, "sex")
+metadata$sex <- search.field(metadata$sample_attribute, "sex") %>%
+    sub('^male$', 'M', ., ignore.case = TRUE) %>% 
+    sub('^female$', 'F', . , ignore.case = TRUE) %>%
+    sub('not_documented', 'NA', . , fixed = TRUE) %>%
+    sub('not determined', 'NA', . , fixed = TRUE) %>%
+    sub('not applicable', 'NA', . , fixed = TRUE) %>%
+    sub('Unknown', 'NA', . , fixed = TRUE) %>%
+    sub('not collected', 'NA', . , fixed = TRUE) %>%
+    sub('U', 'NA', . , fixed = TRUE) %>%
+    sub('missing','NA', . , fixed = TRUE) %>%
+    sub('asexual', 'NA', . , fixed = TRUE) %>%
+    sub('mixed sex', 'B', . , fixed = TRUE) %>%
+    sub('1 Male, 2 Female', 'M, FF', . , fixed = TRUE) %>%
+    sub('2 Male, 1 Female', 'MM, F', . , fixed = TRUE) %>%
+    sub('3 Female', 'FFF', . , fixed = TRUE)
+
+# Get gender
+metadata$gender <- search.field(metadata$sample_attribute, "gender") %>%
+    sub('^male$', 'M', ., ignore.case = TRUE) %>% 
+    sub('^female$', 'F', . , ignore.case = TRUE) %>%
+    sub('MAL', 'M', . , fixed = TRUE) %>%
+    sub('FEM', 'F', . , fixed = TRUE) %>%
+    sub('XY', 'M', . , fixed = TRUE) %>%
+    sub('XX', 'F', . , fixed = TRUE) %>%
+    sub('not_documented', 'NA', . , fixed = TRUE)  %>%
+    sub('--', 'NA', . , fixed = TRUE) %>%
+    sub('3 Female', 'FFF', . , fixed = TRUE) %>%
+    sub('N/A', 'NA', . , fixed = TRUE)
+
+
+metadata$sex <- ifelse((metadata$sex == 'NA') & (metadata$gender == 'NA'),'NA',
+       ifelse(metadata$sex == 'NA', metadata$gender, metadata$sex))
+
+metadata$gender <- NULL
+
+# Cheking merged columns
+# table(metadata$gender)[c(1,3,4)] + table(metadata$sex)[c(2,4,7)]
 
 # Get source type of samples
-metadata$strain <- search.field(metadata$sample_attribute, "Strain")
 metadata$source_name <- search.field(metadata$sample_attribute, "source_name")
 
 # Removing new line characters
@@ -133,31 +192,6 @@ metadata$read_spec <- gsub("\n", "", metadata$read_spec)
 write.table(metadata, "all_illumina_sra_for_human.txt", sep = "\t", quote = FALSE,
             row.names = FALSE)
 
-# # Create new database
-# meta_con <- dbConnect(SQLite(), dbname = "test.sqlite")
-# 
-# # Define parameters to create table for metadata
-# table_name = "metadata"
-# primary_key_name = "meta_id"
-# fields <- sub("\\.", "__", colnames(metadata))
-# 
-# ids <- paste(fields[1:4], " varchar(255) not NULL,", sep = "", collapse = " ")
-# registers <- paste(fields[5:length(fields)], "longtext default 'NA'", 
-#                    sep = " ", collapse = ", ")
-# 
-# query <- "CREATE TABLE " %p% table_name %p% "(" %p% 
-#   primary_key_name %p% " int unsigned auto_increment not NULL," %p%
-#   ids %p% registers %p% ");"
-# 
-# dbGetQuery(meta_con, query)
-# 
-# for(i in 1:nrow(metadata)) {
-#   x <- unlist(gsub("'", "prime", metadata[i,], fixed = TRUE))
-#   values <- paste("'" %p% x, "'", sep = "", collapse = ",")
-#   query <- "INSERT INTO " %p%  table_name %p% " VALUES (" %p% '"' %p%
-#     i %p% '"' %p% "," %p% values %p% ");"
-#   dbGetQuery(meta_con, query)
-# }
-
+# Disconnect from db
 dbDisconnect(sra_con)
-# dbDisconnect(meta_con)
+
