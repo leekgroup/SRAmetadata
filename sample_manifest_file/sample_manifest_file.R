@@ -20,3 +20,7 @@ for(k in 1:length(line)){
 
 write.table(x, file = paste0("sample_size_", n_size ,".txt"), quote = FALSE,
             sep = "\t", row.names = FALSE, col.names = FALSE)
+
+# Ensure reproducibility
+options(width = 120)
+devtools::session_info()

@@ -1,0 +1,65 @@
+
+R version 3.1.1 Patched (2014-10-16 r66782) -- "Sock it to Me"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> file <- file.path('..', '/manifest_file_illumina_sra_human')
+> 
+> com <- paste0("wc -l ", file, " | awk '{ print $1 }'")
+> n <- system(com, intern = TRUE)
+> n_size = 3000
+> 
+> file.create("relationship_manifest_file-sample")
+[1] TRUE
+> 
+> ###
+> 
+> set.seed(42)
+> line <- sample(1:n, n_size)
+> x <- rep("NA", n_size)
+> 
+> for(k in 1:length(line)){
++     x[k] <- system(paste0("sed -n -e'", line[k], "p' ", file),
++                    intern = TRUE)
++     write(line[k], "relationship_manifest_file-sample", append=TRUE)
++ }
+> 
+> write.table(x, file = paste0("sample_size_", n_size ,".txt"), quote = FALSE,
++             sep = "\t", row.names = FALSE, col.names = FALSE)
+> 
+> # Ensure reproducibility
+> options(width = 120)
+> devtools::session_info()
+Session info -----------------------------------------------------------------------------------------------------------
+ setting  value                                      
+ version  R version 3.1.1 Patched (2014-10-16 r66782)
+ system   x86_64, linux-gnu                          
+ ui       X11                                        
+ language (EN)                                       
+ collate  en_US.UTF-8                                
+ tz       <NA>                                       
+
+Packages ---------------------------------------------------------------------------------------------------------------
+ package    * version date       source        
+ devtools   * 1.7.0   2015-01-17 CRAN (R 3.1.1)
+ rstudioapi * 0.2     2014-12-31 CRAN (R 3.1.1)
+> 
+> proc.time()
+   user  system elapsed 
+ 14.350  20.884  39.335 
