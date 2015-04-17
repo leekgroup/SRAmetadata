@@ -335,7 +335,7 @@ This script generates a file with the sample and a second file that maps the col
 in "sample_size_3000.txt". The value of the seed used to make the sample was 42.
 
 ```R
-ile <- file.path('..', '/manifest_file_illumina_sra_human')
+file <- file.path('..', 'manifest_file_illumina_sra_human')
 
 com <- paste0("wc -l ", file, " | awk '{ print $1 }'")
 n <- system(com, intern = TRUE)
