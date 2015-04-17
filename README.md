@@ -364,3 +364,28 @@ write.table(x, file = paste0("sample_size_", n_size ,".txt"), quote = FALSE,
 Output files:
 - __relationship_manifest_file-sample__
 - __sample_size_3000.txt__
+
+# Reproducibility
+
+```R
+> # Ensure reproducibility
+> options(width = 120)
+> devtools::session_info()
+Session info -----------------------------------------------------------------------------------------------------------
+ setting  value                                      
+ version  R version 3.1.1 Patched (2014-10-16 r66782)
+ system   x86_64, linux-gnu                          
+ ui       X11                                        
+ language (EN)                                       
+ collate  en_US.UTF-8                                
+ tz       <NA>                                       
+
+Packages ---------------------------------------------------------------------------------------------------------------
+ package    * version date       source                           
+ DBI          0.3.1   2014-09-24 CRAN (R 3.1.1)                   
+ devtools   * 1.7.0   2015-01-17 CRAN (R 3.1.1)                   
+ magrittr     1.5     2015-04-14 Github (smbache/magrittr@89f143d)
+ RSQLite      1.0.0   2014-10-25 CRAN (R 3.1.1)                   
+ rstudioapi * 0.2     2014-12-31 CRAN (R 3.1.1)  
+
+```
