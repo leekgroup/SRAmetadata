@@ -35,7 +35,7 @@ gunzip SRAmetadb.sqlite.gz
 The script __define_and_get_fields_SRA.R__ creates a table with relevant metadata from SRA and an associated manifest file. Both files can be 
 linked, since the order of rows is the same.
 
-```
+```R
 # Load library
 library('RSQLite')
 library('magrittr')
@@ -332,7 +332,34 @@ Output files:
 
 Then, a sample of 3000 runs without replacement was made with the script __sample_manifest_file.R__.
 This script generates a file with the sample and a second file that maps the column number from the manifest file to the metadata fields 
-in "sample_size_3000.txt"
+in "sample_size_3000.txt". The value of the seed used to make the sample was 42.
+
+```R
+ile <- file.path('..', '/manifest_file_illumina_sra_human')
+
+com <- paste0("wc -l ", file, " | awk '{ print $1 }'")
+n <- system(com, intern = TRUE)
+n_size = 3000
+
+file.create("relationship_manifest_file-sample")
+
+###
+
+set.seed(42)
+line <- sample(1:n, n_size)
+x <- rep("NA", n_size)
+
+for(k in 1:length(line)){
+    x[k] <- system(paste0("sed -n -e'", line[k], "p' ", file),
+                   intern = TRUE)
+    write(line[k], "relationship_manifest_file-sample", append=TRUE)
+}
+
+write.table(x, file = paste0("sample_size_", n_size ,".txt"), quote = FALSE,
+            sep = "\t", row.names = FALSE, col.names = FALSE)
+
+```
+
 
 Output files:
 - __relationship_manifest_file-sample__
