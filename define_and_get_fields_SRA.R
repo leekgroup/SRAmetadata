@@ -1,6 +1,7 @@
 # Load library
 library('RSQLite')
 library('magrittr')
+library('R.utils')
 
 # Define functions
 "%p%"  <- function(x, y) paste0(x, y)
