@@ -75,6 +75,8 @@ dbDisconnect(sra_con)
 
 metadata <- merge(selected, fastq_namefiles, by = "run_accession")
 
+metadata$date_download <- rep(Sys.Date(),nrow(metadata))
+
 # Rename column name for file data
 names(metadata)[names(metadata) == 'sradb_updated.y'] <- 'sradb_updated_file'
 
