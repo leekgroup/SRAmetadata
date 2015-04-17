@@ -1,4 +1,4 @@
-file <- file.path('..', '/manifest_file_illumina_sra_human')
+file <- file.path('..', 'manifest_file_illumina_sra_human')
 
 com <- paste0("wc -l ", file, " | awk '{ print $1 }'")
 n <- system(com, intern = TRUE)
