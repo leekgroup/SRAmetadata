@@ -276,6 +276,9 @@ write.table(paired, "manifest_file_illumina_sra_human", sep = "\t", quote = FALS
 write.table(single, "manifest_file_illumina_sra_human", sep = "\t", quote = FALSE, 
             col.names = FALSE, row.names = FALSE, append = TRUE)
 
+# Ensure reproducibility
+options(width = 120)
+devtools::session_info()
 
 # MANIFEST FILE FORMAT
 # <FASTQ URL>(tab)<optional MD5>(tab)<sample label>
