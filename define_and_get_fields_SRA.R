@@ -13,7 +13,7 @@ sra_con <- dbConnect(SQLite(),sqlfile)
 
 # Query database
 query <- "SELECT  
-experiment_accession, study_accession, sample_accession, 
+study_accession, sample_accession, experiment_accession, 
 run_accession, submission_accession,
 taxon_id,
 common_name,
@@ -63,13 +63,22 @@ experiment_attribute
 FROM sra
 WHERE platform = 'ILLUMINA' AND
 study_type = 'Transcriptome Analysis' AND
+library_strategy = 'RNA-Seq' AND
 taxon_id = 9606;"
 
 selected <- dbGetQuery(sra_con, query)
-query <- paste0("SELECT run_accession, file_name, md5, bytes,sradb_updated FROM fastq WHERE run_accession IN ('", 
+query <- paste0("SELECT run_accession, file_name, md5, bytes, sradb_updated FROM fastq WHERE run_accession IN ('", 
                 paste(selected$run_accession, collapse="', '"), "')")
 fastq_namefiles <- dbGetQuery(sra_con, query)
+
+# Disconnect from db
+dbDisconnect(sra_con)
+
 metadata <- merge(selected, fastq_namefiles, by = "run_accession")
+
+# Rename column name for file data
+names(metadata)[names(metadata) == 'sradb_updated.y'] <- 'sradb_updated_file'
+
 
 get.fastq.urls <- function(df) {
     url <- rep(NA, length(df$run_accession))
@@ -88,7 +97,45 @@ get.fastq.urls <- function(df) {
     }
     return(url)
 }
+
+
 metadata$URL <- get.fastq.urls(metadata)
+metadata$layout <- unlist(lapply(strsplit(metadata$library_layout, " - "), `[`, 1))
+
+
+paired_and_forward <- intersect(grep("_1", metadata$file_name), 
+                                grep("PAIRED", metadata$layout))
+
+paired_and_reverse <- intersect(grep("_2", metadata$file_name), 
+                                grep("PAIRED", metadata$layout))
+
+ids_filename <- c("run_accession", "study_accession", "sample_accession", 
+                  "experiment_accession", "submission_accession", "file_name", "URL", "md5")
+
+PF <- metadata[paired_and_forward, ids_filename]
+PR <- metadata[paired_and_reverse, ids_filename]
+
+PF <- cbind(PF, paired_and_forward)
+PR <- cbind(PR, paired_and_reverse)
+paired_experiments <- merge(PF, PR, by = head(ids_filename, -3))
+
+colnames(paired_experiments) <- c("run_accession", "study_accession", "sample_accession", "experiment_accession",
+                                  "submission_accession", "file_name.f", "URL.f", "md5.f","paired_and_forward", "file_name.r",
+                                  "URL.r", "md5.r","paired_and_reverse")
+
+
+reverse_url <- rep("NA", nrow(metadata))
+reverse_url[paired_experiments$paired_and_forward] <- paired_experiments$URL.r
+metadata$URL_R <- reverse_url
+
+reverse_md5 <- rep("NA", nrow(metadata))
+reverse_md5[paired_experiments$paired_and_forward] <- paired_experiments$md5.r
+metadata$md5_R <- reverse_md5
+
+# cbind(metadata$URL, metadata$URL_R)[paired_and_forward,]
+# cbind(metadata$URL, metadata$URL_R)[paired_and_reverse,]
+
+metadata <- metadata[-paired_experiments$paired_and_reverse, ]
 
 search.field <- function(column, field) {
     temp <- rep('NA', length(column))
@@ -138,7 +185,7 @@ metadata$race <- search.field(metadata$sample_attribute, "race")
 
 
 metadata$population <- ifelse((metadata$population == 'NA') & (metadata$race == 'NA'),'NA',
-                       ifelse(metadata$population == 'NA', metadata$race, metadata$population))
+                              ifelse(metadata$population == 'NA', metadata$race, metadata$population))
 
 metadata$race <- NULL
 
@@ -174,7 +221,7 @@ metadata$gender <- search.field(metadata$sample_attribute, "gender") %>%
 
 
 metadata$sex <- ifelse((metadata$sex == 'NA') & (metadata$gender == 'NA'),'NA',
-       ifelse(metadata$sex == 'NA', metadata$gender, metadata$sex))
+                       ifelse(metadata$sex == 'NA', metadata$gender, metadata$sex))
 
 metadata$gender <- NULL
 
@@ -187,9 +234,45 @@ metadata$source_name <- search.field(metadata$sample_attribute, "source_name")
 # Removing new line characters
 metadata$read_spec <- gsub("\n", "", metadata$read_spec)
 
-# Write table with all Illimina data
-write.table(metadata, "all_illumina_sra_for_human.txt", sep = "\t", quote = FALSE,
-            row.names = FALSE)
 
-# Disconnect from db
-dbDisconnect(sra_con)
+# Create manifest file
+labels <- c("study_accession", "sample_accession", 
+            "experiment_accession", "run_accession")
+
+sample_labels <- as.vector(apply(metadata[,labels], 1 ,
+                                 function(x){paste( x ,collapse = "_")}))
+
+
+s_i <- grep("SINGLE", metadata$layout)
+p_i <- grep("PAIRED", metadata$layout)
+
+single <- cbind(metadata$URL[s_i], metadata$md5[s_i], sample_labels[s_i] %p% "-1-1")
+rownames(single) <- s_i
+paired <- cbind(metadata$URL[p_i], metadata$md5[p_i], metadata$URL_R[p_i], metadata$md5_R[p_i], 
+                sample_labels[p_i] %p% "-1-1")
+rownames(paired) <- p_i
+order_list <- c(p_i,s_i)
+rownames(metadata) <- 1:nrow(metadata)
+
+
+
+# metadata[p_i,]
+# metadata[s_i,]
+# metadata[as.numeric(rownames(paired)),]
+# metadata[as.numeric(rownames(single)),]
+# rownames(paired)
+# rownames(single)
+
+# Write table with all Illimina data
+write.table(metadata[match(order_list, rownames(metadata)),], "all_illumina_sra_for_human.txt", 
+            sep = "\t", quote = FALSE, row.names = FALSE)
+
+write.table(paired, "manifest_file_illumina_sra_human", sep = "\t", quote = FALSE,
+            col.names = FALSE, row.names = FALSE)
+write.table(single, "manifest_file_illumina_sra_human", sep = "\t", quote = FALSE, 
+            col.names = FALSE, row.names = FALSE, append = TRUE)
+
+
+# MANIFEST FILE FORMAT
+# <FASTQ URL>(tab)<optional MD5>(tab)<sample label>
+# <FASTQ URL 1>(tab)<optional MD5 1>(tab)<FASTQ URL 2>(tab)<optional MD5 2>(tab)<sample label>
