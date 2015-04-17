@@ -253,7 +253,10 @@ rownames(paired) <- p_i
 order_list <- c(p_i,s_i)
 rownames(metadata) <- 1:nrow(metadata)
 
-
+paired_as_single <- subset(paired, paired[,3] == 'NA' | paired[,4] == 'NA')
+paired <- subset(paired, paired[,3] != 'NA' | paired[,4] != 'NA')
+single <- rbind(single, paired_as_single[,c(1,2,5)])
+order_list <- c(as.numeric(rownames(paired)),as.numeric(rownames(single)))
 
 # metadata[p_i,]
 # metadata[s_i,]
