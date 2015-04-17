@@ -62,7 +62,6 @@ qtype,
 experiment_attribute
 FROM sra
 WHERE platform = 'ILLUMINA' AND
-study_type = 'Transcriptome Analysis' AND
 library_strategy = 'RNA-Seq' AND
 taxon_id = 9606;"
 
