@@ -28,6 +28,7 @@ sra_con <- dbConnect(SQLite(),sqlfile)
 query <- "SELECT  
 study_accession, sample_accession, experiment_accession, 
 run_accession, submission_accession,
+submission_date,
 taxon_id,
 common_name,
 anonymized_name,
