@@ -80,7 +80,7 @@ library_strategy = 'RNA-Seq' AND
 taxon_id = 9606;"
 
 selected <- dbGetQuery(sra_con, query)
-query <- paste0("SELECT run_accession, file_name, md5, bytes, sradb_updated FROM fastq WHERE run_accession IN ('", 
+query <- paste0("SELECT run_accession, file_name, md5, bytes, audit_time, sradb_updated FROM fastq WHERE run_accession IN ('", 
                 paste(selected$run_accession, collapse="', '"), "')")
 fastq_namefiles <- dbGetQuery(sra_con, query)
 
