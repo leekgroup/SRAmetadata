@@ -294,6 +294,9 @@ write.table(single, "manifest_file_illumina_sra_human", sep = "\t", quote = FALS
 options(width = 120)
 devtools::session_info()
 
+# Temporary solution for warning issue in R.utils package.
+# See https://github.com/HenrikBengtsson/R.utils/issues/19#event-284604477
+quit(save="no")
 # MANIFEST FILE FORMAT
 # <FASTQ URL>(tab)<optional MD5>(tab)<sample label>
 # <FASTQ URL 1>(tab)<optional MD5 1>(tab)<FASTQ URL 2>(tab)<optional MD5 2>(tab)<sample label>
