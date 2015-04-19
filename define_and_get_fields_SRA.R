@@ -1,25 +1,16 @@
 # Load library
 library('RSQLite')
 library('magrittr')
-library('R.utils')
+library('SRAdb')
 
 # Define functions
 "%p%"  <- function(x, y) paste0(x, y)
 
 
-sra.meta <- file.path('..', 'SRAmetadb.sqlite') # Using the file from another location to avoid having copies of this 2.4 Gb file
+sqlfile <- file.path('.', 'SRAmetadb.sqlite')
 
-# Update sql if necessary:
-if(file.exists(sra.meta)) {
-    sqlfile <- sra.meta
-} else {
-    url <- 'http://gbnci.abcc.ncifcrf.gov/backup/SRAmetadb.sqlite.gz'
-    db_file <- file.path(getwd(), "SRAmetadb.sqlite.gz")
-    download.file(url,'SRAmetadb.sqlite.gz', mode = "wb", method = "auto")
-    gunzip(db_file, overwrite = TRUE)
-    unzippedfile <- gsub("[.]gz$", "", db_file)
-    sqlfile <-unzippedfile
-}
+# Download sql if necessary:
+if(!file.exists('SRAmetadb.sqlite')) sqlfile <<- getSRAdbFile()
 
 # Create connection
 sra_con <- dbConnect(SQLite(),sqlfile)
