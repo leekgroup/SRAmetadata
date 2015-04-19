@@ -4,5 +4,6 @@
 ### Uses manifest file from version of SRAmetadata repo tagged "intron_detection_experiment"
 RAIL_EXE=/Users/eterna/rail/src # The "executable" for Rail is its source directory
 OUT=s3://rail-eu-west-1/prep3000
+SRAMETADATAREPO=/Users/eterna/SRAmetadata # Location of SRA metadata repo. Its HEAD should be at "intron_detection_experiment."
 
-python $RAIL_EXE prep elastic -m https://raw.githubusercontent.com/lcolladotor/SRAmetadata/96e0f790449899d6d60da18143b049f108e0c8a5/sample_manifest_file/sample_size_3000.txt?token=AAtLkS_CVy9FrHpaxZS4TmpNpv0oYTuJks5VPOSTwA%3D%3D -o $OUT --region eu-west-1 -c 20 --core-instance-bid-price 0.11 --master-instance-bid-price 0.11
+python $RAIL_EXE prep elastic -m $SRAMETADATAREPO/sample_manifest_file/sample_size_3000.txt -o $OUT --region eu-west-1 -c 20 --core-instance-bid-price 0.11 --master-instance-bid-price 0.11 --do-not-check-manifest
