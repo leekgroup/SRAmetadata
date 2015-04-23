@@ -2,6 +2,7 @@
 library('RSQLite')
 library('magrittr')
 library('SRAdb')
+library('RCurl')
 
 # Define functions
 "%p%"  <- function(x, y) paste0(x, y)
@@ -261,16 +262,59 @@ order_list <- c(p_i,s_i)
 rownames(metadata) <- 1:nrow(metadata)
 
 paired_as_single <- subset(paired, paired[,3] == 'NA' | paired[,4] == 'NA')
+print("Number of studies reported as paired but just one fastq file is given:")
+print(nrow(paired_as_single))
+print(paired_as_single[,c(1,5)])
 paired <- subset(paired, paired[,3] != 'NA' | paired[,4] != 'NA')
-single <- rbind(single, paired_as_single[,c(1,2,5)])
+
+rectify_urls <- function(manifest){
+    user_pwd <- "anonymous:imagine_alquisira@hotmail.com"
+    for(x in 1:nrow(manifest)){
+        verbose <- TRUE
+        i <- 1
+        while(i < 101) {
+            if(verbose) message(paste(Sys.time(), 'Attempt number', i))
+                res <- tryCatch( url_request <- getURL(as.vector(manifest[x,1]),  userpwd = user_pwd,
+                                  dirlistonly = TRUE, ftp.use.epsv = FALSE), error = function(e) return('fail') )
+                if(res != 'fail') break
+                i <- i + 1
+                Sys.sleep(5)
+        }
+        url_request <- unlist(strsplit(url_request, "\n"))
+        #print(url_request)
+        if(!is.na(url_request[3])){
+            cat(x,"\t", url_request[2],"\t",url_request[3],"\n")
+            failed_url <- unlist(strsplit(manifest[x,1], "/"))
+            pos_file <- grep('fastq.gz', failed_url)
+            f_file <- failed_url -> r_file
+            f_file[pos_file] <- url_request[2]
+            r_file[pos_file] <- url_request[3]
+            f_file <- paste(f_file, collapse = "/")
+            r_file <- paste(r_file, collapse = "/")
+            run_corrected <- paste(r_file, '0', manifest[x,3], sep = "\t")
+            manifest[x,] <- c(f_file, '0', NA, NA, run_corrected)
+        }else if(!(is.na(url_request[2])) & (is.na(url_request[3]))){
+            cat(x,"\t",url_request[1],"\t",url_request[2],"\n")
+            failed_url <- unlist(strsplit(manifest[x,1], "/"))
+            pos_file <- grep('fastq.gz', failed_url)
+            f_file <- failed_url -> r_file
+            f_file[pos_file] <- url_request[1]
+            r_file[pos_file] <- url_request[2]
+            f_file <- paste(f_file, collapse = "/")
+            r_file <- paste(r_file, collapse = "/")
+            run_corrected <- paste(r_file, '0', manifest[x,3], sep = "\t")
+            manifest[x,] <- c(f_file, '0', NA, NA, run_corrected)
+        }
+    Sys.sleep(3)
+    }
+    return(manifest)
+}
+
+paired_as_single_verified <- rectify_urls(paired_as_single) # Now they have 2 associated files
+
+single <- rbind(single, paired_as_single_verified[,c(1,2,5)])
 order_list <- c(as.numeric(rownames(paired)),as.numeric(rownames(single)))
 
-# metadata[p_i,]
-# metadata[s_i,]
-# metadata[as.numeric(rownames(paired)),]
-# metadata[as.numeric(rownames(single)),]
-# rownames(paired)
-# rownames(single)
 
 # Write table with all Illimina data
 write.table(metadata[match(order_list, rownames(metadata)),], "all_illumina_sra_for_human.txt", 
@@ -285,9 +329,6 @@ write.table(single, "manifest_file_illumina_sra_human", sep = "\t", quote = FALS
 options(width = 120)
 devtools::session_info()
 
-# Temporary solution for warning issue in R.utils package.
-# See https://github.com/HenrikBengtsson/R.utils/issues/19#event-284604477
-quit(save="no")
 # MANIFEST FILE FORMAT
 # <FASTQ URL>(tab)<optional MD5>(tab)<sample label>
 # <FASTQ URL 1>(tab)<optional MD5 1>(tab)<FASTQ URL 2>(tab)<optional MD5 2>(tab)<sample label>
