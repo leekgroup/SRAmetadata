@@ -109,13 +109,82 @@ get.fastq.urls <- function(df) {
 metadata$URL <- get.fastq.urls(metadata)
 metadata$layout <- unlist(lapply(strsplit(metadata$library_layout, " - "), `[`, 1))
 
+# Get all PAIRED-end and SINGLE runs with 2 associated files (forward and reverse)
 
-paired_and_forward <- intersect(grep("_1", metadata$file_name), 
-                                grep("PAIRED", metadata$layout))
+## PAIRED _1
+paired_and_forward <- grep("_1", metadata$URL)
+## PAIRED _2
+paired_and_reverse <- grep("_2", metadata$URL)
 
-paired_and_reverse <- intersect(grep("_2", metadata$file_name), 
-                                grep("PAIRED", metadata$layout))
+equal <- setequal(metadata$run_accession[paired_and_forward], 
+                  metadata$run_accession[paired_and_reverse])
+cat("N°studies:(paired-end AND '_1')\t", length(paired_and_forward), "\n",
+    "N°studies:(paired-end AND '_2')\t", length(paired_and_reverse), "\n",
+    "Are run_accessions equal for paired AND '_1' and paired AND '_2'?:\n", equal)
+diff1 <- setdiff(metadata$run_accession[paired_and_forward], metadata$run_accession[paired_and_reverse])
+diff2 <- setdiff(metadata$run_accession[paired_and_reverse], metadata$run_accession[paired_and_forward])
+if (!equal){
+    cat("Differences forward-reverse:\n")
+    print(diff1)
+    cat("Differences reverse-forward:\n")
+    print(diff2)
+}
 
+file_names_diff2 <- subset(metadata, run_accession == diff2)[,"file_name"]
+
+if(!(grepl("_", file_names_diff2[1]) & grepl("_", file_names_diff2[2]))){
+    failed_url <- unlist(strsplit(subset(metadata, run_accession == diff2)[1,"URL"], "/"))
+    positions <- rownames(subset(metadata, run_accession == diff2))
+    pos_file <- grep('.fastq.gz', failed_url)
+    failed_url
+    f_file <- failed_url -> r_file
+    f_file[pos_file[1]] <- as.character(diff2) %p% "_2.fastq.gz"
+    r_file[pos_file[1]] <- as.character(diff2) %p% "_1.fastq.gz"
+    f_file <- paste(f_file, collapse = "/")
+    r_file <- paste(r_file, collapse = "/")
+    metadata[positions[1],c("URL")] <- f_file
+    metadata[positions[2],c("URL")] <- r_file
+    metadata[positions[2],c("md5")] <- '0'
+}
+
+## PAIRED _1
+paired_and_forward <- grep("_1", metadata$URL)
+## PAIRED _2
+paired_and_reverse <- grep("_2", metadata$URL)
+
+equal <- setequal(metadata$run_accession[paired_and_forward], 
+                  metadata$run_accession[paired_and_reverse])
+cat("N°studies:(paired-end AND '_1')\t", length(paired_and_forward), "\n",
+    "N°studies:(paired-end AND '_2')\t", length(paired_and_reverse), "\n",
+    "Are run_accessions equal for paired AND '_1' and paired AND '_2'?:\n", equal)
+diff1 <- setdiff(metadata$run_accession[paired_and_forward], metadata$run_accession[paired_and_reverse])
+diff2 <- setdiff(metadata$run_accession[paired_and_reverse], metadata$run_accession[paired_and_forward])
+if (!equal){
+    cat("Differences forward-reverse:\n")
+    print(diff1)
+    cat("Differences reverse-forward:\n")
+    print(diff2)
+}
+
+
+
+metadata_twofiles_single_F <- table(metadata[paired_and_forward,]$layout)
+metadata_twofiles_single_R <- table(metadata[paired_and_reverse,]$layout)
+metadata_twofiles_single_F[3] <- "    <-- Runs with 2 files | F | _1"
+metadata_twofiles_single_R[3] <- "    <-- Runs with 2 files | R | _2"
+
+print(metadata_twofiles_single_F)
+print(metadata_twofiles_single_R)
+
+# Make sure single runs have F and R associated files 
+metadata_twofiles_single_F_layout <- subset(metadata[paired_and_forward,], layout == "SINGLE")
+nrow(metadata_twofiles_single_F_layout)
+metadata_twofiles_single_R_layout <- subset(metadata[paired_and_reverse,], layout == "SINGLE")
+nrow(metadata_twofiles_single_R_layout)
+setdiff(metadata_twofiles_single_F_layout$run_accession, 
+        metadata_twofiles_single_R_layout$run_accession)
+
+# Normalize metadata table
 ids_filename <- c("run_accession", "study_accession", "sample_accession", 
                   "experiment_accession", "submission_accession", "file_name", "URL", "md5")
 
@@ -130,19 +199,69 @@ colnames(paired_experiments) <- c("run_accession", "study_accession", "sample_ac
                                   "submission_accession", "file_name.f", "URL.f", "md5.f","paired_and_forward", "file_name.r",
                                   "URL.r", "md5.r","paired_and_reverse")
 
-
+# Assign urls to paired runs (reverse)
 reverse_url <- rep("NA", nrow(metadata))
 reverse_url[paired_experiments$paired_and_forward] <- paired_experiments$URL.r
 metadata$URL_R <- reverse_url
 
+# Assign md5 to paired runs (reverse)
 reverse_md5 <- rep("NA", nrow(metadata))
 reverse_md5[paired_experiments$paired_and_forward] <- paired_experiments$md5.r
 metadata$md5_R <- reverse_md5
 
-# cbind(metadata$URL, metadata$URL_R)[paired_and_forward,]
-# cbind(metadata$URL, metadata$URL_R)[paired_and_reverse,]
-
+# Remove reverse paired-end runs from metadata table
 metadata <- metadata[-paired_experiments$paired_and_reverse, ]
+
+
+# Identify duplicated run_accessions
+print(length(metadata$run_accession))
+print(length(unique(metadata$run_accession)))
+#metadata[duplicated(metadata$run_accession),]$run_accession
+duplicated_accessions <- metadata[duplicated(metadata$run_accession),]
+i <- metadata[,1] %in% duplicated_accessions$run_accession
+duplicated_accessions <-metadata[i,]
+print(duplicated_accessions[1:4,])
+
+# Remove duplicated paired accessions associated with 3 files
+# Keep those with two files
+# Example:
+# (ERR033743.fastq.gz, ERR033743_1.fastq.gz, and ERR033743_2.fastq.gz)
+# Keep ERR033743_1.fastq.gz, and ERR033743_2.fastq.gz pair
+
+
+paired_with_F <- intersect(grep("PAIRED", metadata$layout), grep("_1", metadata$URL))
+paired_with_F_and_R <- intersect(paired_with_F, grep("_2", metadata$URL_R))
+
+
+duplicated_paired_wo_R <- setdiff(grep("PAIRED", metadata$layout), paired_with_F_and_R)
+print("Number of duplicated runs associated with 3 files")
+print(nrow(metadata[duplicated_paired_wo_R,]))
+
+metadata <- metadata[-duplicated_paired_wo_R,]
+
+# Corroborations 
+
+print("Make sure metadata does not have duplicated runs")
+print(nrow(metadata))
+print(length(unique(metadata$run_accession)))
+
+print("Make sure all paired experiments have 2 files")
+paired_1 <- intersect(grep("PAIRED", metadata$layout), grep("_1", metadata$URL))
+paired_2 <- intersect(grep("PAIRED", metadata$layout), grep("_2", metadata$URL_R))
+print(setdiff(paired_1, paired_2))
+print(setdiff(paired_2, paired_1))
+
+print("Are there single runs with 2 associated files?")
+single_1 <- intersect(grep("SINGLE", metadata$layout), grep("_1", metadata$URL))
+single_2 <- intersect(grep("SINGLE", metadata$layout), grep("_2", metadata$URL_R))
+length(intersect(single_1, single_2))
+
+print("Are there single runs with files ending with _2 in URL?")
+length(intersect(grep("SINGLE", metadata$layout), grep("_2", metadata$URL)))
+
+print("Are there single runs with files ending with _1 in URL_R?")
+length(intersect(grep("SINGLE", metadata$layout), grep("_1", metadata$URL_R)))
+
 
 search.field <- function(column, field) {
     temp <- rep('NA', length(column))
@@ -241,7 +360,6 @@ metadata$source_name <- search.field(metadata$sample_attribute, "source_name")
 # Removing new line characters
 metadata$read_spec <- gsub("\n", "", metadata$read_spec)
 
-
 # Create manifest file
 labels <- c("study_accession", "sample_accession", 
             "experiment_accession", "run_accession")
@@ -250,8 +368,8 @@ sample_labels <- as.vector(apply(metadata[,labels], 1 ,
                                  function(x){paste( x ,collapse = "_")}))
 
 
-s_i <- grep("SINGLE", metadata$layout)
-p_i <- grep("PAIRED", metadata$layout)
+s_i <- grep("_", metadata$URL, invert = TRUE)
+p_i <- grep("_", metadata$URL)
 
 single <- cbind(metadata$URL[s_i], metadata$md5[s_i], sample_labels[s_i] %p% "-1-1")
 rownames(single) <- s_i
@@ -265,54 +383,7 @@ paired_as_single <- subset(paired, paired[,3] == 'NA' | paired[,4] == 'NA')
 print("Number of studies reported as paired but just one fastq file is given:")
 print(nrow(paired_as_single))
 print(paired_as_single[,c(1,5)])
-paired <- subset(paired, paired[,3] != 'NA' | paired[,4] != 'NA')
 
-rectify_urls <- function(manifest){
-    user_pwd <- "anonymous:imagine_alquisira@hotmail.com"
-    for(x in 1:nrow(manifest)){
-        verbose <- TRUE
-        i <- 1
-        while(i < 101) {
-            if(verbose) message(paste(Sys.time(), 'Attempt number', i))
-                res <- tryCatch( url_request <- getURL(as.vector(manifest[x,1]),  userpwd = user_pwd,
-                                  dirlistonly = TRUE, ftp.use.epsv = FALSE), error = function(e) return('fail') )
-                if(res != 'fail') break
-                i <- i + 1
-                Sys.sleep(5)
-        }
-        url_request <- unlist(strsplit(url_request, "\n"))
-        #print(url_request)
-        if(!is.na(url_request[3])){
-            cat(x,"\t", url_request[2],"\t",url_request[3],"\n")
-            failed_url <- unlist(strsplit(manifest[x,1], "/"))
-            pos_file <- grep('fastq.gz', failed_url)
-            f_file <- failed_url -> r_file
-            f_file[pos_file] <- url_request[2]
-            r_file[pos_file] <- url_request[3]
-            f_file <- paste(f_file, collapse = "/")
-            r_file <- paste(r_file, collapse = "/")
-            run_corrected <- paste(r_file, '0', manifest[x,3], sep = "\t")
-            manifest[x,] <- c(f_file, '0', NA, NA, run_corrected)
-        }else if(!(is.na(url_request[2])) & (is.na(url_request[3]))){
-            cat(x,"\t",url_request[1],"\t",url_request[2],"\n")
-            failed_url <- unlist(strsplit(manifest[x,1], "/"))
-            pos_file <- grep('fastq.gz', failed_url)
-            f_file <- failed_url -> r_file
-            f_file[pos_file] <- url_request[1]
-            r_file[pos_file] <- url_request[2]
-            f_file <- paste(f_file, collapse = "/")
-            r_file <- paste(r_file, collapse = "/")
-            run_corrected <- paste(r_file, '0', manifest[x,3], sep = "\t")
-            manifest[x,] <- c(f_file, '0', NA, NA, run_corrected)
-        }
-    Sys.sleep(3)
-    }
-    return(manifest)
-}
-
-paired_as_single_verified <- rectify_urls(paired_as_single) # Now they have 2 associated files
-
-single <- rbind(single, paired_as_single_verified[,c(1,2,5)])
 order_list <- c(as.numeric(rownames(paired)),as.numeric(rownames(single)))
 
 
