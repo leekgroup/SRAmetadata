@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 ### Preprocesses 3000 SRA samples to obtain introns and their "initial" coverage across samples
-### Should be run on version of Rail-RNA repo tagged "intron_detection_experiment"
+### Should be run on Rail-RNA v0.1.5
 ### Uses manifest file from version of SRAmetadata repo tagged "intron_detection_experiment"
-RAIL_EXE=/Users/eterna/rail/src # The "executable" for Rail is its source directory
-OUT=s3://rail-eu-west-1/prep3000
+OUTDIR=s3://rail-eu-west-1/SRA3000prepped
 SRAMETADATAREPO=/Users/eterna/SRAmetadata # Location of SRA metadata repo. Its HEAD should be at "intron_detection_experiment".
 
-python $RAIL_EXE prep elastic -m $SRAMETADATAREPO/sample_manifest_file/sample_size_3000.txt -o $OUT --region eu-west-1 -c 20 --core-instance-bid-price 0.11 --master-instance-bid-price 0.11 --no-consistent-view --do-not-check-manifest
+rail-rna prep elastic -m $SRAMETADATAREPO/sample_manifest_file/sample_size_3000.txt -o $OUTDIR -c 20 --region eu-west-1 --master-instance-type c3.2xlarge --core-instance-type c3.2xlarge --no-consistent-view --master-instance-bid-price 0.11 --core-instance-bid-price 0.11 --ec2-key-name raileuwest1 --do-not-check-manifest --do-not-bin-quals
