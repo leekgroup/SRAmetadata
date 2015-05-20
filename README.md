@@ -390,7 +390,7 @@ Packages -----------------------------------------------------------------------
 
 ```
 # To-do list:
-*Remove these fields from SRA metadata if present (they do not have registers):
+Remove these fields from SRA metadata if present (they do not have registers):
 + SRR_bamFile
 + sequence_space
 + SRX_bamFile
@@ -400,15 +400,15 @@ Packages -----------------------------------------------------------------------
 + adapter_spec
 
 
-*Have a controlled vocabulary for not reported data: "NAs"
-- design_description
+Have a controlled vocabulary for not reported data: "NAs"
+* design_description
 + none provided
 + N/A
 
-- library_selection
+* library_selection
 + unespecified
 
-- library_construction_protocol
+* library_construction_protocol
 + none provided
 
 # Notes
