@@ -402,14 +402,14 @@ Remove these fields from SRA metadata if present (they do not have registers):
 
 Have a controlled vocabulary for not reported data: "NAs"
 * design_description
-+ none provided
-+ N/A
+ none provided
+ N/A
 
 * library_selection
-+ unespecified
+ unespecified
 
 * library_construction_protocol
-+ none provided
+ none provided
 
 # Notes
 library_name has information about biological and technical replicates (manual curation??)
