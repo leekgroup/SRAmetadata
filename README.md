@@ -35,7 +35,7 @@ gunzip SRAmetadb.sqlite.gz
 The script __define_and_get_fields_SRA.R__ creates a table with relevant metadata from SRA and an associated manifest file. Both files can be 
 linked, since the order of rows is the same.
 
-```
+
 Output files: 
 - __all_illumina_sra_for_human.txt__
 - __manifest_file_illumina_sra_human__
