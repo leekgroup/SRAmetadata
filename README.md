@@ -391,6 +391,7 @@ Packages -----------------------------------------------------------------------
 ```
 # To-do list:
 Remove these fields from SRA metadata if present (they do not have registers):
+
 SRR_bamFile
 
 sequence_space
@@ -432,6 +433,7 @@ study_entrez_link
 
 
 + Have a controlled vocabulary for not reported data: "NAs"
+
 * design_description:
  none provided,
  N/A
