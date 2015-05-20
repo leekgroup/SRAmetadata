@@ -391,16 +391,47 @@ Packages -----------------------------------------------------------------------
 ```
 # To-do list:
 Remove these fields from SRA metadata if present (they do not have registers):
-+ SRR_bamFile
-+ sequence_space
-+ SRX_bamFile
-+ SRX_fastqFTP
-+ run_url_link
-+ run_entrez_link
-+ adapter_spec
+SRR_bamFile
+
+sequence_space
+
+SRX_bamFile
+
+SRX_fastqFTP
+
+run_url_link
+
+run_entrez_link
+
+adapter_spec
+
+instrument_name
+
+sequence_space
+
+base_caller
+
+quality_scorer
+
+number_of_levels
+
+multiplier
+
+qtype
+
+experiment_entrez_link
+
+anonymized_name
+
+individual_name
+
+sample_entrez_link
+
+study_entrez_link
 
 
-Have a controlled vocabulary for not reported data: "NAs"
+
++ Have a controlled vocabulary for not reported data: "NAs"
 * design_description:
  none provided,
  N/A
