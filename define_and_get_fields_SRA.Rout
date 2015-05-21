@@ -1,6 +1,6 @@
 
-R version 3.1.1 Patched (2014-10-16 r66782) -- "Sock it to Me"
-Copyright (C) 2014 The R Foundation for Statistical Computing
+R version 3.2.0 Patched (2015-04-29 r68274) -- "Full of Ingredients"
+Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -23,72 +23,98 @@ Type 'q()' to quit R.
 > library('RSQLite')
 Loading required package: DBI
 > library('magrittr')
+> library('SRAdb')
+Loading required package: graph
+Loading required package: RCurl
+Loading required package: bitops
+Setting options('download.file.method.GEOquery'='curl')
+> library('stringr')
+
+Attaching package: ‘stringr’
+
+The following object is masked from ‘package:graph’:
+
+    boundary
+
 > 
 > # Define functions
 > "%p%"  <- function(x, y) paste0(x, y)
 > 
-> # Update sql if necessary:
-> sqlfile <- file.path('..', 'SRAmetadb.sqlite') # Using the file from another location to avoid having copies of this 2.4 Gb file
+> 
+> sqlfile <- file.path('.', 'SRAmetadb.sqlite')
+> 
+> # Download sql if necessary:
+> if(!file.exists('SRAmetadb.sqlite')) sqlfile <<- getSRAdbFile()
 > 
 > # Create connection
 > sra_con <- dbConnect(SQLite(),sqlfile)
 > 
 > # Query database
-> query <- "SELECT  
-+ study_accession, sample_accession, experiment_accession, 
-+ run_accession, submission_accession,
-+ taxon_id,
-+ common_name,
-+ anonymized_name,
-+ individual_name,
-+ description,
-+ sample_attribute,
-+ study_title,
-+ study_type,
-+ study_abstract,
-+ center_project_name,
-+ study_description,
-+ related_studies,
-+ primary_study,
-+ study_attribute,
-+ sradb_updated,
-+ SRR_bamFile,
-+ instrument_name,
-+ run_date,
-+ run_center,
-+ experiment_name,
-+ run_attribute,
-+ SRX_bamFile,
-+ SRX_fastqFTP,
+> query <- "SELECT 
++ run_accession,
++ sample_accession,
++ experiment_accession,
++ study_accession,
++ submission_accession,
++ sra_ID,                                        
++ run_ID,
++ run_alias,                    
++ run_date,                     
++ updated_date,
++ spots,                        
++ bases,
++ run_center,                   
++ experiment_name,                         
++ run_attribute,                
++ experiment_ID,
++ experiment_alias,             
++ experiment_title,
 + study_name,
-+ design_description,
 + sample_name,
++ design_description,
 + library_name,
 + library_strategy,
 + library_source,
 + library_selection,
 + library_layout,
 + library_construction_protocol,
-+ spots,
-+ adapter_spec,
 + read_spec,
 + platform,
 + instrument_model,
 + platform_parameters,
-+ sequence_space,
-+ base_caller,
-+ quality_scorer,
-+ number_of_levels,
-+ multiplier,
-+ qtype,
-+ experiment_attribute
++ experiment_url_link,
++ experiment_attribute,
++ sample_ID,
++ sample_alias,
++ taxon_id,
++ common_name,
++ description,
++ sample_url_link,
++ sample_attribute,
++ study_ID,
++ study_alias,
++ study_title,
++ study_type,
++ study_abstract,
++ center_project_name,
++ study_description,
++ study_url_link,
++ study_attribute,
++ related_studies,
++ primary_study,
++ submission_ID,
++ submission_comment,
++ submission_center,
++ submission_lab,
++ submission_date,
++ sradb_updated
 + FROM sra
 + WHERE platform = 'ILLUMINA' AND
 + library_strategy = 'RNA-Seq' AND
 + taxon_id = 9606;"
 > 
 > selected <- dbGetQuery(sra_con, query)
-> query <- paste0("SELECT run_accession, file_name, md5, bytes, sradb_updated FROM fastq WHERE run_accession IN ('", 
+> query <- paste0("SELECT * FROM fastq WHERE run_accession IN ('", 
 +                 paste(selected$run_accession, collapse="', '"), "')")
 > fastq_namefiles <- dbGetQuery(sra_con, query)
 > 
@@ -98,11 +124,10 @@ Loading required package: DBI
 > 
 > metadata <- merge(selected, fastq_namefiles, by = "run_accession")
 > 
-> metadata$date_download <- rep(Sys.Date(),nrow(metadata))
+> metadata$date_download <- rep(Sys.time(),nrow(metadata)) %>% as.character()
 > 
 > # Rename column name for file data
 > names(metadata)[names(metadata) == 'sradb_updated.y'] <- 'sradb_updated_file'
-> 
 > 
 > get.fastq.urls <- function(df) {
 +     url <- rep(NA, length(df$run_accession))
@@ -126,13 +151,103 @@ Loading required package: DBI
 > metadata$URL <- get.fastq.urls(metadata)
 > metadata$layout <- unlist(lapply(strsplit(metadata$library_layout, " - "), `[`, 1))
 > 
+> # Get all PAIRED-end and SINGLE runs with 2 associated files (forward and reverse)
 > 
-> paired_and_forward <- intersect(grep("_1", metadata$file_name), 
-+                                 grep("PAIRED", metadata$layout))
+> ## PAIRED _1
+> paired_and_forward <- grep("_1", metadata$URL)
+> ## PAIRED _2
+> paired_and_reverse <- grep("_2", metadata$URL)
 > 
-> paired_and_reverse <- intersect(grep("_2", metadata$file_name), 
-+                                 grep("PAIRED", metadata$layout))
+> equal <- setequal(metadata$run_accession[paired_and_forward], 
++                   metadata$run_accession[paired_and_reverse])
+> cat("N°studies:(paired-end AND '_1')\t", length(paired_and_forward), "\n",
++     "N°studies:(paired-end AND '_2')\t", length(paired_and_reverse), "\n",
++     "Are run_accessions equal for paired AND '_1' and paired AND '_2'?:\n", equal)
+N°studies:(paired-end AND '_1')	 12336 
+ N°studies:(paired-end AND '_2')	 12337 
+ Are run_accessions equal for paired AND '_1' and paired AND '_2'?:
+ FALSE> diff1 <- setdiff(metadata$run_accession[paired_and_forward], metadata$run_accession[paired_and_reverse])
+> diff2 <- setdiff(metadata$run_accession[paired_and_reverse], metadata$run_accession[paired_and_forward])
+> if (!equal){
++     cat("Differences forward-reverse:\n")
++     print(diff1)
++     cat("Differences reverse-forward:\n")
++     print(diff2)
++ }
+Differences forward-reverse:
+character(0)
+Differences reverse-forward:
+[1] "SRR1164794"
 > 
+> file_names_diff2 <- subset(metadata, run_accession == diff2)[,"file_name"]
+> 
+> if(!(grepl("_", file_names_diff2[1]) & grepl("_", file_names_diff2[2]))){
++     failed_url <- unlist(strsplit(subset(metadata, run_accession == diff2)[1,"URL"], "/"))
++     positions <- rownames(subset(metadata, run_accession == diff2))
++     pos_file <- grep('.fastq.gz', failed_url)
++     failed_url
++     f_file <- failed_url -> r_file
++     f_file[pos_file[1]] <- as.character(diff2) %p% "_2.fastq.gz"
++     r_file[pos_file[1]] <- as.character(diff2) %p% "_1.fastq.gz"
++     f_file <- paste(f_file, collapse = "/")
++     r_file <- paste(r_file, collapse = "/")
++     metadata[positions[1],c("URL")] <- f_file
++     metadata[positions[2],c("URL")] <- r_file
++     metadata[positions[2],c("md5")] <- '0'
++ }
+> 
+> ## PAIRED _1
+> paired_and_forward <- grep("_1", metadata$URL)
+> ## PAIRED _2
+> paired_and_reverse <- grep("_2", metadata$URL)
+> 
+> equal <- setequal(metadata$run_accession[paired_and_forward], 
++                   metadata$run_accession[paired_and_reverse])
+> cat("N°studies:(paired-end AND '_1')\t", length(paired_and_forward), "\n",
++     "N°studies:(paired-end AND '_2')\t", length(paired_and_reverse), "\n",
++     "Are run_accessions equal for paired AND '_1' and paired AND '_2'?:\n", equal)
+N°studies:(paired-end AND '_1')	 12337 
+ N°studies:(paired-end AND '_2')	 12337 
+ Are run_accessions equal for paired AND '_1' and paired AND '_2'?:
+ TRUE> diff1 <- setdiff(metadata$run_accession[paired_and_forward], metadata$run_accession[paired_and_reverse])
+> diff2 <- setdiff(metadata$run_accession[paired_and_reverse], metadata$run_accession[paired_and_forward])
+> if (!equal){
++     cat("Differences forward-reverse:\n")
++     print(diff1)
++     cat("Differences reverse-forward:\n")
++     print(diff2)
++ }
+> 
+> 
+> 
+> metadata_twofiles_single_F <- table(metadata[paired_and_forward,]$layout)
+> metadata_twofiles_single_R <- table(metadata[paired_and_reverse,]$layout)
+> metadata_twofiles_single_F[3] <- "    <-- Runs with 2 files | F | _1"
+> metadata_twofiles_single_R[3] <- "    <-- Runs with 2 files | R | _2"
+> 
+> print(metadata_twofiles_single_F)
+                            PAIRED                             SINGLE 
+                             12299                                 38 
+                                   
+    <-- Runs with 2 files | F | _1 
+> print(metadata_twofiles_single_R)
+                            PAIRED                             SINGLE 
+                             12299                                 38 
+                                   
+    <-- Runs with 2 files | R | _2 
+> 
+> # Make sure single runs have F and R associated files 
+> metadata_twofiles_single_F_layout <- subset(metadata[paired_and_forward,], layout == "SINGLE")
+> nrow(metadata_twofiles_single_F_layout)
+[1] 38
+> metadata_twofiles_single_R_layout <- subset(metadata[paired_and_reverse,], layout == "SINGLE")
+> nrow(metadata_twofiles_single_R_layout)
+[1] 38
+> setdiff(metadata_twofiles_single_F_layout$run_accession, 
++         metadata_twofiles_single_R_layout$run_accession)
+character(0)
+> 
+> # Normalize metadata table
 > ids_filename <- c("run_accession", "study_accession", "sample_accession", 
 +                   "experiment_accession", "submission_accession", "file_name", "URL", "md5")
 > 
@@ -147,39 +262,226 @@ Loading required package: DBI
 +                                   "submission_accession", "file_name.f", "URL.f", "md5.f","paired_and_forward", "file_name.r",
 +                                   "URL.r", "md5.r","paired_and_reverse")
 > 
-> 
+> # Assign urls to paired runs (reverse)
 > reverse_url <- rep("NA", nrow(metadata))
 > reverse_url[paired_experiments$paired_and_forward] <- paired_experiments$URL.r
 > metadata$URL_R <- reverse_url
 > 
+> # Assign md5 to paired runs (reverse)
 > reverse_md5 <- rep("NA", nrow(metadata))
 > reverse_md5[paired_experiments$paired_and_forward] <- paired_experiments$md5.r
 > metadata$md5_R <- reverse_md5
 > 
-> # cbind(metadata$URL, metadata$URL_R)[paired_and_forward,]
-> # cbind(metadata$URL, metadata$URL_R)[paired_and_reverse,]
-> 
+> # Remove reverse paired-end runs from metadata table
 > metadata <- metadata[-paired_experiments$paired_and_reverse, ]
 > 
+> 
+> # Identify duplicated run_accessions
+> print(length(metadata$run_accession))
+[1] 22231
+> print(length(unique(metadata$run_accession)))
+[1] 21636
+> #metadata[duplicated(metadata$run_accession),]$run_accession
+> duplicated_accessions <- metadata[duplicated(metadata$run_accession),]
+> i <- metadata[,1] %in% duplicated_accessions$run_accession
+> duplicated_accessions <-metadata[i,]
+> print(duplicated_accessions[1:4,])
+     run_accession sample_accession experiment_accession study_accession
+1025     ERR033743        ERS028734            ERX012551       ERP000619
+1027     ERR033743        ERS028734            ERX012551       ERP000619
+1028     ERR033744        ERS028735            ERX012553       ERP000619
+1029     ERR033744        ERS028735            ERX012553       ERP000619
+     submission_accession sra_ID run_ID run_alias   run_date updated_date
+1025            ERA026429  50340  45739   run_WT1 2010-01-01   2014-11-18
+1027            ERA026429  50340  45739   run_WT1 2010-01-01   2014-11-18
+1028            ERA026429  50342  45740   run_WT2 2010-01-01   2014-11-18
+1029            ERA026429  50342  45740   run_WT2 2010-01-01   2014-11-18
+        spots      bases run_center experiment_name run_attribute experiment_ID
+1025 21051529 1408054617       HAIB  experiment_WT1          <NA>         24217
+1027 21051529 1408054617       HAIB  experiment_WT1          <NA>         24217
+1028 26436692 1767227093       HAIB  experiment_WT2          <NA>         24219
+1029 26436692 1767227093       HAIB  experiment_WT2          <NA>         24219
+     experiment_alias experiment_title study_name sample_name
+1025   experiment_WT1       Fig S7 WT1   EP_STUDY  sample_WT1
+1027   experiment_WT1       Fig S7 WT1   EP_STUDY  sample_WT1
+1028   experiment_WT2       Fig S7 WT2   EP_STUDY  sample_WT2
+1029   experiment_WT2       Fig S7 WT2   EP_STUDY  sample_WT2
+     design_description library_name library_strategy library_source
+1025               <NA>   Fig S7 WT1          RNA-Seq TRANSCRIPTOMIC
+1027               <NA>   Fig S7 WT1          RNA-Seq TRANSCRIPTOMIC
+1028               <NA>   Fig S7 WT2          RNA-Seq TRANSCRIPTOMIC
+1029               <NA>   Fig S7 WT2          RNA-Seq TRANSCRIPTOMIC
+     library_selection                                   library_layout
+1025            RANDOM PAIRED - NOMINAL_LENGTH: 100; NOMINAL_SDEV: 20; 
+1027            RANDOM PAIRED - NOMINAL_LENGTH: 100; NOMINAL_SDEV: 20; 
+1028            RANDOM PAIRED - NOMINAL_LENGTH: 100; NOMINAL_SDEV: 20; 
+1029            RANDOM PAIRED - NOMINAL_LENGTH: 100; NOMINAL_SDEV: 20; 
+     library_construction_protocol
+1025           Paired End mRNA-Seq
+1027           Paired End mRNA-Seq
+1028           Paired End mRNA-Seq
+1029           Paired End mRNA-Seq
+                                                                                                                                                             read_spec
+1025 READ_INDEX: 0; READ_CLASS: Application Read; READ_TYPE: Forward; BASE_COORD: 1 || READ_INDEX: 1; READ_CLASS: Application Read; READ_TYPE: Reverse; BASE_COORD: 37
+1027 READ_INDEX: 0; READ_CLASS: Application Read; READ_TYPE: Forward; BASE_COORD: 1 || READ_INDEX: 1; READ_CLASS: Application Read; READ_TYPE: Reverse; BASE_COORD: 37
+1028 READ_INDEX: 0; READ_CLASS: Application Read; READ_TYPE: Forward; BASE_COORD: 1 || READ_INDEX: 1; READ_CLASS: Application Read; READ_TYPE: Reverse; BASE_COORD: 37
+1029 READ_INDEX: 0; READ_CLASS: Application Read; READ_TYPE: Forward; BASE_COORD: 1 || READ_INDEX: 1; READ_CLASS: Application Read; READ_TYPE: Reverse; BASE_COORD: 37
+     platform            instrument_model
+1025 ILLUMINA Illumina Genome Analyzer II
+1027 ILLUMINA Illumina Genome Analyzer II
+1028 ILLUMINA Illumina Genome Analyzer II
+1029 ILLUMINA Illumina Genome Analyzer II
+                               platform_parameters experiment_url_link
+1025 INSTRUMENT_MODEL: Illumina Genome Analyzer II                <NA>
+1027 INSTRUMENT_MODEL: Illumina Genome Analyzer II                <NA>
+1028 INSTRUMENT_MODEL: Illumina Genome Analyzer II                <NA>
+1029 INSTRUMENT_MODEL: Illumina Genome Analyzer II                <NA>
+     experiment_attribute sample_ID sample_alias taxon_id common_name
+1025                 <NA>     35746   sample_WT1     9606       human
+1027                 <NA>     35746   sample_WT1     9606       human
+1028                 <NA>     35747   sample_WT2     9606       human
+1029                 <NA>     35747   sample_WT2     9606       human
+     description sample_url_link             sample_attribute study_ID
+1025        <NA>            <NA> Genotype: WT || Replicate: 1     2290
+1027        <NA>            <NA> Genotype: WT || Replicate: 1     2290
+1028        <NA>            <NA> Genotype: WT || Replicate: 2     2290
+1029        <NA>            <NA> Genotype: WT || Replicate: 2     2290
+     study_alias
+1025    EP_STUDY
+1027    EP_STUDY
+1028    EP_STUDY
+1029    EP_STUDY
+                                                                                           study_title
+1025 ExpressionPlot: A web-based framework for analysis of RNA-Seq and microarray gene expression data
+1027 ExpressionPlot: A web-based framework for analysis of RNA-Seq and microarray gene expression data
+1028 ExpressionPlot: A web-based framework for analysis of RNA-Seq and microarray gene expression data
+1029 ExpressionPlot: A web-based framework for analysis of RNA-Seq and microarray gene expression data
+                 study_type
+1025 Transcriptome Analysis
+1027 Transcriptome Analysis
+1028 Transcriptome Analysis
+1029 Transcriptome Analysis
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              study_abstract
+1025 RNA-Seq and microarray platforms have emerged as important tools for detecting changes in gene expression and RNA processing in biological samples. We present ExpressionPlot, a software package consisting of a default back end, which prepares raw sequencing or Affymetrix microarray data, and a web-based front end, which offers a biologically centered interface to browse, visualize, and compare different data sets. Download and Installation instructions, user’s manual, discussion group, and a prototype are available at http://expressionplot.com/.
+1027 RNA-Seq and microarray platforms have emerged as important tools for detecting changes in gene expression and RNA processing in biological samples. We present ExpressionPlot, a software package consisting of a default back end, which prepares raw sequencing or Affymetrix microarray data, and a web-based front end, which offers a biologically centered interface to browse, visualize, and compare different data sets. Download and Installation instructions, user’s manual, discussion group, and a prototype are available at http://expressionplot.com/.
+1028 RNA-Seq and microarray platforms have emerged as important tools for detecting changes in gene expression and RNA processing in biological samples. We present ExpressionPlot, a software package consisting of a default back end, which prepares raw sequencing or Affymetrix microarray data, and a web-based front end, which offers a biologically centered interface to browse, visualize, and compare different data sets. Download and Installation instructions, user’s manual, discussion group, and a prototype are available at http://expressionplot.com/.
+1029 RNA-Seq and microarray platforms have emerged as important tools for detecting changes in gene expression and RNA processing in biological samples. We present ExpressionPlot, a software package consisting of a default back end, which prepares raw sequencing or Affymetrix microarray data, and a web-based front end, which offers a biologically centered interface to browse, visualize, and compare different data sets. Download and Installation instructions, user’s manual, discussion group, and a prototype are available at http://expressionplot.com/.
+             center_project_name study_description study_url_link
+1025 ExpressionPlot Example Data              <NA>           <NA>
+1027 ExpressionPlot Example Data              <NA>           <NA>
+1028 ExpressionPlot Example Data              <NA>           <NA>
+1029 ExpressionPlot Example Data              <NA>           <NA>
+     study_attribute related_studies primary_study submission_ID
+1025            <NA>            <NA>          <NA>         12244
+1027            <NA>            <NA>          <NA>         12244
+1028            <NA>            <NA>          <NA>         12244
+1029            <NA>            <NA>          <NA>         12244
+     submission_comment submission_center submission_lab submission_date
+1025               <NA>            HU-MCB   Maniatis Lab            <NA>
+1027               <NA>            HU-MCB   Maniatis Lab            <NA>
+1028               <NA>            HU-MCB   Maniatis Lab            <NA>
+1029               <NA>            HU-MCB   Maniatis Lab            <NA>
+         sradb_updated.x fastq_ID            file_name
+1025 2015-04-01 23:49:46    68858   ERR033743.fastq.gz
+1027 2015-04-01 23:49:46    68859 ERR033743_1.fastq.gz
+1028 2015-04-01 23:49:46    68861   ERR033744.fastq.gz
+1029 2015-04-01 23:49:46    68862 ERR033744_1.fastq.gz
+                                  md5     bytes          audit_time
+1025 9ee02141171c354bed8bfc1d27536c0c 108867931 2012-06-21 21:11:35
+1027 3457902f75fe3e2d403320e3b8c455a4 549494701 2012-06-21 21:12:09
+1028 7eff54451c973b4740369f597b523ae3 140986007 2012-06-21 21:34:32
+1029 630ad23699f7d54435820bc6f9f117f8 721033622 2012-06-21 21:34:54
+      sradb_updated_file       date_download
+1025 2015-04-01 23:49:29 2015-05-21 18:18:17
+1027 2015-04-01 23:49:29 2015-05-21 18:18:17
+1028 2015-04-01 23:49:29 2015-05-21 18:18:17
+1029 2015-04-01 23:49:29 2015-05-21 18:18:17
+                                                                          URL
+1025   ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR033/ERR033743/ERR033743.fastq.gz
+1027 ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR033/ERR033743/ERR033743_1.fastq.gz
+1028   ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR033/ERR033744/ERR033744.fastq.gz
+1029 ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR033/ERR033744/ERR033744_1.fastq.gz
+     layout
+1025 PAIRED
+1027 PAIRED
+1028 PAIRED
+1029 PAIRED
+                                                                        URL_R
+1025                                                                       NA
+1027 ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR033/ERR033743/ERR033743_2.fastq.gz
+1028                                                                       NA
+1029 ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR033/ERR033744/ERR033744_2.fastq.gz
+                                md5_R
+1025                               NA
+1027 a7cdbbb71d1145139e45bda4402c6fc8
+1028                               NA
+1029 cedfe79c9388ea2119f5e6fb56c97853
+> 
+> # Remove duplicated paired accessions associated with 3 files
+> # Keep those with two files
+> # Example:
+> # (ERR033743.fastq.gz, ERR033743_1.fastq.gz, and ERR033743_2.fastq.gz)
+> # Keep ERR033743_1.fastq.gz, and ERR033743_2.fastq.gz pair
+> 
+> 
+> paired_with_F <- intersect(grep("PAIRED", metadata$layout), grep("_1", metadata$URL))
+> paired_with_F_and_R <- intersect(paired_with_F, grep("_2", metadata$URL_R))
+> 
+> 
+> duplicated_paired_wo_R <- setdiff(grep("PAIRED", metadata$layout), paired_with_F_and_R)
+> print("Number of duplicated runs associated with 3 files")
+[1] "Number of duplicated runs associated with 3 files"
+> print(nrow(metadata[duplicated_paired_wo_R,]))
+[1] 725
+> 
+> metadata <- metadata[-duplicated_paired_wo_R,]
+> 
+> # Corroborations 
+> 
+> print("Make sure metadata does not have duplicated runs")
+[1] "Make sure metadata does not have duplicated runs"
+> print(nrow(metadata))
+[1] 21506
+> print(length(unique(metadata$run_accession)))
+[1] 21506
+> 
+> print("Make sure all paired experiments have 2 files")
+[1] "Make sure all paired experiments have 2 files"
+> paired_1 <- intersect(grep("PAIRED", metadata$layout), grep("_1", metadata$URL))
+> paired_2 <- intersect(grep("PAIRED", metadata$layout), grep("_2", metadata$URL_R))
+> print(setdiff(paired_1, paired_2))
+integer(0)
+> print(setdiff(paired_2, paired_1))
+integer(0)
+> 
+> print("Are there single runs with 2 associated files?")
+[1] "Are there single runs with 2 associated files?"
+> single_1 <- intersect(grep("SINGLE", metadata$layout), grep("_1", metadata$URL))
+> single_2 <- intersect(grep("SINGLE", metadata$layout), grep("_2", metadata$URL_R))
+> length(intersect(single_1, single_2))
+[1] 38
+> 
+> print("Are there single runs with files ending with _2 in URL?")
+[1] "Are there single runs with files ending with _2 in URL?"
+> length(intersect(grep("SINGLE", metadata$layout), grep("_2", metadata$URL)))
+[1] 0
+> 
+> print("Are there single runs with files ending with _1 in URL_R?")
+[1] "Are there single runs with files ending with _1 in URL_R?"
+> length(intersect(grep("SINGLE", metadata$layout), grep("_1", metadata$URL_R)))
+[1] 0
+> 
+> 
 > search.field <- function(column, field) {
-+     temp <- rep('NA', length(column))
-+     pos <- grep(paste0('.*', field, ':.*'), column, ignore.case = FALSE)
-+     temp[pos]<- as.numeric(pos)
-+     for(x in temp){
-+         if(x != 'NA'){
-+             x <- as.numeric(x)
-+             f <- sub(".*" %p% field %p% ": ", "", grep('.*' %p% field %p% ':.*',
-+                                                        unlist(strsplit(column[x], "||", fixed = TRUE)), 
-+                                                        perl = TRUE, value = TRUE, ignore.case = TRUE)[1], 
-+                      perl = TRUE,  
-+                      ignore.case = TRUE)
-+             temp[x]<- sub(" $",'', f)        
-+         } 
-+     }
-+     return(unlist(temp))
++     str_split(column, "\\|\\|") %>% 
++         lapply(str_trim) %>%
++         lapply(str_extract, regex(field %p% ":.*", ignore_case = TRUE)) %>%
++         lapply(na.omit) %>%
++         lapply(as.vector) %>% ifelse(. == 'character(0)', NA, .) %>%
++         lapply(`[[`, 1) %>%
++         unlist() %>% 
++         str_replace_all(regex(field %p% ": ", ignore_case = TRUE), "")
 + }
-> 
-> 
 > 
 > # Get cell type
 > metadata$cell_type <- search.field(metadata$sample_attribute, "cell type")
@@ -202,14 +504,13 @@ Loading required package: DBI
 > 
 > 
 > # Get population
-> metadata$population <- sub('hapmap ','', search.field(metadata$sample_attribute, "population"), 
-+                            ignore.case = TRUE)
+> metadata$population <- str_replace_all(search.field(metadata$sample_attribute, "population"), 
++                                        regex('hapmap ', ignore_case = TRUE), "")
 > # Get race
 > metadata$race <- search.field(metadata$sample_attribute, "race")
 > 
-> 
-> metadata$population <- ifelse((metadata$population == 'NA') & (metadata$race == 'NA'),'NA',
-+                               ifelse(metadata$population == 'NA', metadata$race, metadata$population))
+> metadata$population <- ifelse(is.na(metadata$population) & is.na(metadata$race), NA,
++                               ifelse(is.na(metadata$population), metadata$race, metadata$population))
 > 
 > metadata$race <- NULL
 > 
@@ -217,18 +518,20 @@ Loading required package: DBI
 > metadata$sex <- search.field(metadata$sample_attribute, "sex") %>%
 +     sub('^male$', 'M', ., ignore.case = TRUE) %>% 
 +     sub('^female$', 'F', . , ignore.case = TRUE) %>%
-+     sub('not_documented', 'NA', . , fixed = TRUE) %>%
-+     sub('not determined', 'NA', . , fixed = TRUE) %>%
-+     sub('not applicable', 'NA', . , fixed = TRUE) %>%
-+     sub('Unknown', 'NA', . , fixed = TRUE) %>%
-+     sub('not collected', 'NA', . , fixed = TRUE) %>%
-+     sub('U', 'NA', . , fixed = TRUE) %>%
-+     sub('missing','NA', . , fixed = TRUE) %>%
-+     sub('asexual', 'NA', . , fixed = TRUE) %>%
-+     sub('mixed sex', 'B', . , fixed = TRUE) %>%
++     sub('not_documented', NA, . , ignore.case = TRUE) %>%
++     sub('not determined', NA, . , ignore.case = TRUE) %>%
++     sub('not applicable', NA, . , ignore.case = TRUE) %>%
++     sub('Unknown', NA, . , ignore.case = TRUE) %>%
++     sub('not collected', NA, . , ignore.case = TRUE) %>%
++     sub('U', NA, . , fixed = TRUE) %>%
++     sub('missing',NA, . , ignore.case = TRUE) %>%
++     sub('asexual', NA, . , ignore.case = TRUE) %>%
++     sub('mixed sex', 'B', . ,ignore.case = TRUE) %>%
 +     sub('1 Male, 2 Female', 'M, FF', . , fixed = TRUE) %>%
 +     sub('2 Male, 1 Female', 'MM, F', . , fixed = TRUE) %>%
-+     sub('3 Female', 'FFF', . , fixed = TRUE)
++     sub('3 Female', 'FFF', . , fixed = TRUE) %>%
++     sub('N/A', NA, . , fixed = TRUE) %>%
++     sub('NA', NA, . , fixed = TRUE)
 > 
 > # Get gender
 > metadata$gender <- search.field(metadata$sample_attribute, "gender") %>%
@@ -238,14 +541,15 @@ Loading required package: DBI
 +     sub('FEM', 'F', . , fixed = TRUE) %>%
 +     sub('XY', 'M', . , fixed = TRUE) %>%
 +     sub('XX', 'F', . , fixed = TRUE) %>%
-+     sub('not_documented', 'NA', . , fixed = TRUE)  %>%
-+     sub('--', 'NA', . , fixed = TRUE) %>%
++     sub('not_documented', NA, . , fixed = TRUE)  %>%
++     sub('--', NA, . , fixed = TRUE) %>%
 +     sub('3 Female', 'FFF', . , fixed = TRUE) %>%
-+     sub('N/A', 'NA', . , fixed = TRUE)
++     sub('N/A', NA, . , fixed = TRUE) %>%
++     sub('NA', NA, . , fixed = TRUE)
 > 
 > 
-> metadata$sex <- ifelse((metadata$sex == 'NA') & (metadata$gender == 'NA'),'NA',
-+                        ifelse(metadata$sex == 'NA', metadata$gender, metadata$sex))
+> metadata$sex <- ifelse(is.na(metadata$sex) & is.na(metadata$gender), NA,
++                        ifelse(is.na(metadata$sex), metadata$gender, metadata$sex))
 > 
 > metadata$gender <- NULL
 > 
@@ -258,7 +562,6 @@ Loading required package: DBI
 > # Removing new line characters
 > metadata$read_spec <- gsub("\n", "", metadata$read_spec)
 > 
-> 
 > # Create manifest file
 > labels <- c("study_accession", "sample_accession", 
 +             "experiment_accession", "run_accession")
@@ -267,8 +570,8 @@ Loading required package: DBI
 +                                  function(x){paste( x ,collapse = "_")}))
 > 
 > 
-> s_i <- grep("SINGLE", metadata$layout)
-> p_i <- grep("PAIRED", metadata$layout)
+> s_i <- grep("_", metadata$URL, invert = TRUE)
+> p_i <- grep("_", metadata$URL)
 > 
 > single <- cbind(metadata$URL[s_i], metadata$md5[s_i], sample_labels[s_i] %p% "-1-1")
 > rownames(single) <- s_i
@@ -279,18 +582,28 @@ Loading required package: DBI
 > rownames(metadata) <- 1:nrow(metadata)
 > 
 > paired_as_single <- subset(paired, paired[,3] == 'NA' | paired[,4] == 'NA')
-> paired <- subset(paired, paired[,3] != 'NA' | paired[,4] != 'NA')
-> single <- rbind(single, paired_as_single[,c(1,2,5)])
+> print("Number of studies reported as paired but just one fastq file is given:")
+[1] "Number of studies reported as paired but just one fastq file is given:"
+> print(nrow(paired_as_single))
+[1] 0
+> print(paired_as_single[,c(1,5)])
+     [,1] [,2]
+> 
+> 
 > order_list <- c(as.numeric(rownames(paired)),as.numeric(rownames(single)))
 > 
-> # metadata[p_i,]
-> # metadata[s_i,]
-> # metadata[as.numeric(rownames(paired)),]
-> # metadata[as.numeric(rownames(single)),]
-> # rownames(paired)
-> # rownames(single)
 > 
-> # Write table with all Illimina data
+> convert_mis_to_na <- . %>% str_replace_na() %>%
++     str_replace_all(c("none provided" = 'NA',
++                       "unspecified" = 'NA',
++                       "N/A" = 'NA',
++                       "<NA>" = 'NA')) %>% ifelse(. == 'NA', NA, .)
+>                     
+> 
+> metadata <- lapply(metadata, convert_mis_to_na) %>% as.data.frame()
+> 
+> 
+> # Write table with all Illumina data
 > write.table(metadata[match(order_list, rownames(metadata)),], "all_illumina_sra_for_human.txt", 
 +             sep = "\t", quote = FALSE, row.names = FALSE)
 > 
@@ -304,7 +617,7 @@ Loading required package: DBI
 > devtools::session_info()
 Session info -----------------------------------------------------------------------------------------------------------
  setting  value                                      
- version  R version 3.1.1 Patched (2014-10-16 r66782)
+ version  R version 3.2.0 Patched (2015-04-29 r68274)
  system   x86_64, linux-gnu                          
  ui       X11                                        
  language (EN)                                       
@@ -312,12 +625,25 @@ Session info -------------------------------------------------------------------
  tz       <NA>                                       
 
 Packages ---------------------------------------------------------------------------------------------------------------
- package    * version date       source                           
- DBI          0.3.1   2014-09-24 CRAN (R 3.1.1)                   
- devtools   * 1.7.0   2015-01-17 CRAN (R 3.1.1)                   
- magrittr     1.5     2015-04-14 Github (smbache/magrittr@89f143d)
- RSQLite      1.0.0   2014-10-25 CRAN (R 3.1.1)                   
- rstudioapi * 0.2     2014-12-31 CRAN (R 3.1.1)                   
+ package      * version  date       source        
+ Biobase        2.28.0   2015-04-18 Bioconductor  
+ BiocGenerics   0.14.0   2015-04-18 Bioconductor  
+ bitops       * 1.0-6    2013-08-17 CRAN (R 3.2.0)
+ DBI          * 0.3.1    2014-09-24 CRAN (R 3.2.0)
+ devtools       1.8.0    2015-05-09 CRAN (R 3.2.0)
+ digest         0.6.8    2014-12-31 CRAN (R 3.2.0)
+ GEOquery       2.34.0   2015-04-18 Bioconductor  
+ git2r          0.10.1   2015-05-07 CRAN (R 3.2.0)
+ graph        * 1.46.0   2015-04-18 Bioconductor  
+ magrittr     * 1.5      2014-11-22 CRAN (R 3.2.0)
+ memoise        0.2.1    2014-04-22 CRAN (R 3.2.0)
+ RCurl        * 1.95-4.6 2015-04-24 CRAN (R 3.2.0)
+ RSQLite      * 1.0.0    2014-10-25 CRAN (R 3.2.0)
+ rversions      1.0.0    2015-04-22 CRAN (R 3.2.0)
+ SRAdb        * 1.22.0   2015-04-18 Bioconductor  
+ stringi        0.4-1    2014-12-14 CRAN (R 3.2.0)
+ stringr      * 1.0.0    2015-04-30 CRAN (R 3.2.0)
+ XML            3.98-1.1 2013-06-20 CRAN (R 3.2.0)
 > 
 > # MANIFEST FILE FORMAT
 > # <FASTQ URL>(tab)<optional MD5>(tab)<sample label>
@@ -325,4 +651,4 @@ Packages -----------------------------------------------------------------------
 > 
 > proc.time()
    user  system elapsed 
- 20.134   2.686  60.562 
+141.756   5.123 175.944 

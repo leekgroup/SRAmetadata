@@ -2,7 +2,7 @@
 library('RSQLite')
 library('magrittr')
 library('SRAdb')
-library('RCurl')
+library('stringr')
 
 # Define functions
 "%p%"  <- function(x, y) paste0(x, y)
@@ -17,62 +17,71 @@ if(!file.exists('SRAmetadb.sqlite')) sqlfile <<- getSRAdbFile()
 sra_con <- dbConnect(SQLite(),sqlfile)
 
 # Query database
-query <- "SELECT  
-study_accession, sample_accession, experiment_accession, 
-run_accession, submission_accession,
-submission_date,
-taxon_id,
-common_name,
-anonymized_name,
-individual_name,
-description,
-sample_attribute,
-study_title,
-study_type,
-study_abstract,
-center_project_name,
-study_description,
-related_studies,
-primary_study,
-study_attribute,
-sradb_updated,
-SRR_bamFile,
-instrument_name,
-run_date,
-run_center,
-experiment_name,
-run_attribute,
-SRX_bamFile,
-SRX_fastqFTP,
+query <- "SELECT 
+run_accession,
+sample_accession,
+experiment_accession,
+study_accession,
+submission_accession,
+sra_ID,                                        
+run_ID,
+run_alias,                    
+run_date,                     
+updated_date,
+spots,                        
+bases,
+run_center,                   
+experiment_name,                         
+run_attribute,                
+experiment_ID,
+experiment_alias,             
+experiment_title,
 study_name,
-design_description,
 sample_name,
+design_description,
 library_name,
 library_strategy,
 library_source,
 library_selection,
 library_layout,
 library_construction_protocol,
-spots,
-adapter_spec,
 read_spec,
 platform,
 instrument_model,
 platform_parameters,
-sequence_space,
-base_caller,
-quality_scorer,
-number_of_levels,
-multiplier,
-qtype,
-experiment_attribute
+experiment_url_link,
+experiment_attribute,
+sample_ID,
+sample_alias,
+taxon_id,
+common_name,
+description,
+sample_url_link,
+sample_attribute,
+study_ID,
+study_alias,
+study_title,
+study_type,
+study_abstract,
+center_project_name,
+study_description,
+study_url_link,
+study_attribute,
+related_studies,
+primary_study,
+submission_ID,
+submission_comment,
+submission_center,
+submission_lab,
+submission_date,
+sradb_updated
 FROM sra
 WHERE platform = 'ILLUMINA' AND
 library_strategy = 'RNA-Seq' AND
 taxon_id = 9606;"
 
 selected <- dbGetQuery(sra_con, query)
-query <- paste0("SELECT run_accession, file_name, md5, bytes, audit_time, sradb_updated FROM fastq WHERE run_accession IN ('", 
+query <- paste0("SELECT * FROM fastq WHERE run_accession IN ('", 
                 paste(selected$run_accession, collapse="', '"), "')")
 fastq_namefiles <- dbGetQuery(sra_con, query)
 
@@ -81,11 +90,10 @@ dbDisconnect(sra_con)
 
 metadata <- merge(selected, fastq_namefiles, by = "run_accession")
 
-metadata$date_download <- rep(Sys.Date(),nrow(metadata))
+metadata$date_download <- rep(Sys.time(),nrow(metadata)) %>% as.character()
 
 # Rename column name for file data
 names(metadata)[names(metadata) == 'sradb_updated.y'] <- 'sradb_updated_file'
-
 
 get.fastq.urls <- function(df) {
     url <- rep(NA, length(df$run_accession))
@@ -264,24 +272,15 @@ length(intersect(grep("SINGLE", metadata$layout), grep("_1", metadata$URL_R)))
 
 
 search.field <- function(column, field) {
-    temp <- rep('NA', length(column))
-    pos <- grep(paste0('.*', field, ':.*'), column, ignore.case = FALSE)
-    temp[pos]<- as.numeric(pos)
-    for(x in temp){
-        if(x != 'NA'){
-            x <- as.numeric(x)
-            f <- sub(".*" %p% field %p% ": ", "", grep('.*' %p% field %p% ':.*',
-                                                       unlist(strsplit(column[x], "||", fixed = TRUE)), 
-                                                       perl = TRUE, value = TRUE, ignore.case = TRUE)[1], 
-                     perl = TRUE,  
-                     ignore.case = TRUE)
-            temp[x]<- sub(" $",'', f)        
-        } 
-    }
-    return(unlist(temp))
+    str_split(column, "\\|\\|") %>% 
+        lapply(str_trim) %>%
+        lapply(str_extract, regex(field %p% ":.*", ignore_case = TRUE)) %>%
+        lapply(na.omit) %>%
+        lapply(as.vector) %>% ifelse(. == 'character(0)', NA, .) %>%
+        lapply(`[[`, 1) %>%
+        unlist() %>% 
+        str_replace_all(regex(field %p% ": ", ignore_case = TRUE), "")
 }
-
-
 
 # Get cell type
 metadata$cell_type <- search.field(metadata$sample_attribute, "cell type")
@@ -304,14 +303,13 @@ metadata$disease <- search.field(metadata$sample_attribute, "disease")
 
 
 # Get population
-metadata$population <- sub('hapmap ','', search.field(metadata$sample_attribute, "population"), 
-                           ignore.case = TRUE)
+metadata$population <- str_replace_all(search.field(metadata$sample_attribute, "population"), 
+                                       regex('hapmap ', ignore_case = TRUE), "")
 # Get race
 metadata$race <- search.field(metadata$sample_attribute, "race")
 
-
-metadata$population <- ifelse((metadata$population == 'NA') & (metadata$race == 'NA'),'NA',
-                              ifelse(metadata$population == 'NA', metadata$race, metadata$population))
+metadata$population <- ifelse(is.na(metadata$population) & is.na(metadata$race), NA,
+                              ifelse(is.na(metadata$population), metadata$race, metadata$population))
 
 metadata$race <- NULL
 
@@ -319,18 +317,20 @@ metadata$race <- NULL
 metadata$sex <- search.field(metadata$sample_attribute, "sex") %>%
     sub('^male$', 'M', ., ignore.case = TRUE) %>% 
     sub('^female$', 'F', . , ignore.case = TRUE) %>%
-    sub('not_documented', 'NA', . , fixed = TRUE) %>%
-    sub('not determined', 'NA', . , fixed = TRUE) %>%
-    sub('not applicable', 'NA', . , fixed = TRUE) %>%
-    sub('Unknown', 'NA', . , fixed = TRUE) %>%
-    sub('not collected', 'NA', . , fixed = TRUE) %>%
-    sub('U', 'NA', . , fixed = TRUE) %>%
-    sub('missing','NA', . , fixed = TRUE) %>%
-    sub('asexual', 'NA', . , fixed = TRUE) %>%
-    sub('mixed sex', 'B', . , fixed = TRUE) %>%
+    sub('not_documented', NA, . , ignore.case = TRUE) %>%
+    sub('not determined', NA, . , ignore.case = TRUE) %>%
+    sub('not applicable', NA, . , ignore.case = TRUE) %>%
+    sub('Unknown', NA, . , ignore.case = TRUE) %>%
+    sub('not collected', NA, . , ignore.case = TRUE) %>%
+    sub('U', NA, . , fixed = TRUE) %>%
+    sub('missing',NA, . , ignore.case = TRUE) %>%
+    sub('asexual', NA, . , ignore.case = TRUE) %>%
+    sub('mixed sex', 'B', . ,ignore.case = TRUE) %>%
     sub('1 Male, 2 Female', 'M, FF', . , fixed = TRUE) %>%
     sub('2 Male, 1 Female', 'MM, F', . , fixed = TRUE) %>%
-    sub('3 Female', 'FFF', . , fixed = TRUE)
+    sub('3 Female', 'FFF', . , fixed = TRUE) %>%
+    sub('N/A', NA, . , fixed = TRUE) %>%
+    sub('NA', NA, . , fixed = TRUE)
 
 # Get gender
 metadata$gender <- search.field(metadata$sample_attribute, "gender") %>%
@@ -340,14 +340,15 @@ metadata$gender <- search.field(metadata$sample_attribute, "gender") %>%
     sub('FEM', 'F', . , fixed = TRUE) %>%
     sub('XY', 'M', . , fixed = TRUE) %>%
     sub('XX', 'F', . , fixed = TRUE) %>%
-    sub('not_documented', 'NA', . , fixed = TRUE)  %>%
-    sub('--', 'NA', . , fixed = TRUE) %>%
+    sub('not_documented', NA, . , fixed = TRUE)  %>%
+    sub('--', NA, . , fixed = TRUE) %>%
     sub('3 Female', 'FFF', . , fixed = TRUE) %>%
-    sub('N/A', 'NA', . , fixed = TRUE)
+    sub('N/A', NA, . , fixed = TRUE) %>%
+    sub('NA', NA, . , fixed = TRUE)
 
 
-metadata$sex <- ifelse((metadata$sex == 'NA') & (metadata$gender == 'NA'),'NA',
-                       ifelse(metadata$sex == 'NA', metadata$gender, metadata$sex))
+metadata$sex <- ifelse(is.na(metadata$sex) & is.na(metadata$gender), NA,
+                       ifelse(is.na(metadata$sex), metadata$gender, metadata$sex))
 
 metadata$gender <- NULL
 
@@ -384,10 +385,21 @@ print("Number of studies reported as paired but just one fastq file is given:")
 print(nrow(paired_as_single))
 print(paired_as_single[,c(1,5)])
 
+
 order_list <- c(as.numeric(rownames(paired)),as.numeric(rownames(single)))
 
 
-# Write table with all Illimina data
+convert_mis_to_na <- . %>% str_replace_na() %>%
+    str_replace_all(c("none provided" = 'NA',
+                      "unspecified" = 'NA',
+                      "N/A" = 'NA',
+                      "<NA>" = 'NA')) %>% ifelse(. == 'NA', NA, .)
+                    
+
+metadata <- lapply(metadata, convert_mis_to_na) %>% as.data.frame()
+
+
+# Write table with all Illumina data
 write.table(metadata[match(order_list, rownames(metadata)),], "all_illumina_sra_for_human.txt", 
             sep = "\t", quote = FALSE, row.names = FALSE)
 
