@@ -1,4 +1,3 @@
-# Load library
 library('RSQLite')
 library('magrittr')
 library('SRAdb')
@@ -276,7 +275,7 @@ search.field <- function(column, field) {
         lapply(str_trim) %>%
         lapply(str_extract, regex(field %p% ":.*", ignore_case = TRUE)) %>%
         lapply(na.omit) %>%
-        lapply(as.vector) %>% ifelse(. == 'character(0)', NA, .) %>%
+        lapply(as.vector) %>% ifelse(. == 'character(0)', 'NA', .) %>%
         lapply(`[[`, 1) %>%
         unlist() %>% 
         str_replace_all(regex(field %p% ": ", ignore_case = TRUE), "")
@@ -308,47 +307,40 @@ metadata$population <- str_replace_all(search.field(metadata$sample_attribute, "
 # Get race
 metadata$race <- search.field(metadata$sample_attribute, "race")
 
-metadata$population <- ifelse(is.na(metadata$population) & is.na(metadata$race), NA,
-                              ifelse(is.na(metadata$population), metadata$race, metadata$population))
-
+metadata$population <- ifelse((metadata$population == 'NA') & (metadata$race == 'NA'),'NA',
+                              ifelse(metadata$population == 'NA', metadata$race, metadata$population))
 metadata$race <- NULL
 
 # Get sex of individuals
 metadata$sex <- search.field(metadata$sample_attribute, "sex") %>%
-    sub('^male$', 'M', ., ignore.case = TRUE) %>% 
-    sub('^female$', 'F', . , ignore.case = TRUE) %>%
-    sub('not_documented', NA, . , ignore.case = TRUE) %>%
-    sub('not determined', NA, . , ignore.case = TRUE) %>%
-    sub('not applicable', NA, . , ignore.case = TRUE) %>%
-    sub('Unknown', NA, . , ignore.case = TRUE) %>%
-    sub('not collected', NA, . , ignore.case = TRUE) %>%
-    sub('U', NA, . , fixed = TRUE) %>%
-    sub('missing',NA, . , ignore.case = TRUE) %>%
-    sub('asexual', NA, . , ignore.case = TRUE) %>%
-    sub('mixed sex', 'B', . ,ignore.case = TRUE) %>%
-    sub('1 Male, 2 Female', 'M, FF', . , fixed = TRUE) %>%
-    sub('2 Male, 1 Female', 'MM, F', . , fixed = TRUE) %>%
-    sub('3 Female', 'FFF', . , fixed = TRUE) %>%
-    sub('N/A', NA, . , fixed = TRUE) %>%
-    sub('NA', NA, . , fixed = TRUE)
+    str_replace(regex("^male$", ignore_case = TRUE), "M") %>%
+    str_replace(regex("^female$", ignore_case = TRUE), "F") %>%
+    str_replace("^U$", "NA") %>%
+    str_replace(regex("^missing$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^asexual$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^mixed$", ignore_case = TRUE), "B") %>%
+    str_replace(regex("^mixed sex$", ignore_case = TRUE), "B") %>%
+    str_replace(regex("^mixture$", ignore_case = TRUE), "B") %>%
+    str_replace('1 Male, 2 Female', "M, FF") %>%
+    str_replace('2 Male, 1 Female', "MM, F") %>%
+    str_replace('^3 Female$', "FFF") 
 
 # Get gender
 metadata$gender <- search.field(metadata$sample_attribute, "gender") %>%
-    sub('^male$', 'M', ., ignore.case = TRUE) %>% 
-    sub('^female$', 'F', . , ignore.case = TRUE) %>%
-    sub('MAL', 'M', . , fixed = TRUE) %>%
-    sub('FEM', 'F', . , fixed = TRUE) %>%
-    sub('XY', 'M', . , fixed = TRUE) %>%
-    sub('XX', 'F', . , fixed = TRUE) %>%
-    sub('not_documented', NA, . , fixed = TRUE)  %>%
-    sub('--', NA, . , fixed = TRUE) %>%
-    sub('3 Female', 'FFF', . , fixed = TRUE) %>%
-    sub('N/A', NA, . , fixed = TRUE) %>%
-    sub('NA', NA, . , fixed = TRUE)
+    str_replace(regex("^male$", ignore_case = TRUE), "M") %>%
+    str_replace(regex("^female$", ignore_case = TRUE), "F") %>%
+    str_replace(regex("^male$", ignore_case = TRUE), "M") %>%
+    str_replace("^MAL$", "M") %>%
+    str_replace("^FEM$", "F") %>%
+    str_replace('XY', "M") %>%
+    str_replace('XX', "F") %>%
+    str_replace(regex("^mixture$", ignore_case = TRUE), "B") %>%
+    str_replace(regex("^mixed$", ignore_case = TRUE), "B") %>%
+    str_replace("^3 Female$", "FFF")
 
 
-metadata$sex <- ifelse(is.na(metadata$sex) & is.na(metadata$gender), NA,
-                       ifelse(is.na(metadata$sex), metadata$gender, metadata$sex))
+metadata$sex <- ifelse((metadata$sex == 'NA') & (metadata$gender == 'NA'),'NA',
+                       ifelse(metadata$sex == 'NA', metadata$gender, metadata$sex))
 
 metadata$gender <- NULL
 
@@ -390,11 +382,19 @@ order_list <- c(as.numeric(rownames(paired)),as.numeric(rownames(single)))
 
 
 convert_mis_to_na <- . %>% str_replace_na() %>%
-    str_replace_all(c("none provided" = 'NA',
-                      "unspecified" = 'NA',
-                      "N/A" = 'NA',
-                      "<NA>" = 'NA')) %>% ifelse(. == 'NA', NA, .)
-                    
+    str_replace(regex("^not_documented$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^not determined$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^not applicable$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^Unknown$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^not collected$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^none provided$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^unspecified$", ignore_case = TRUE), "NA") %>%
+    str_replace("^N/A$", "NA") %>%
+    str_replace("^<NA>$", "NA") %>%
+    str_replace("^--$", "NA") %>% 
+    str_replace("$^", "NA") %>%
+    ifelse(. == 'NA', NA, .)
+    
 
 metadata <- lapply(metadata, convert_mis_to_na) %>% as.data.frame()
 
