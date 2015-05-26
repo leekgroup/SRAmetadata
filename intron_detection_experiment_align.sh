@@ -6,4 +6,4 @@ INDIR=s3://rail-eu-west-1/SRA3kprepped
 OUTDIR=s3://rail-eu-west-1/SRA3kintrons
 SRAMETADATAREPO=/Users/eterna/SRAmetadata # Location of SRA metadata repo. Its HEAD should be at "intron_detection_experiment".
 
-rail-rna align elastic -m $SRAMETADATAREPO/sample_manifest_file/sample_size_3000.txt -o $OUTDIR -i $INDIR -a hg19 --region eu-west-1 -c 60 --core-instance-type c3.8xlarge --master-instance-type c3.8xlarge --core-instance-bid-price 0.35 --master-instance-bid-price 0.35 --no-consistent-view --deliverables itn,idx --ec2-key-name raileuwest1 --do-not-check-manifest
+rail-rna align elastic -m $SRAMETADATAREPO/sample_manifest_file/sample_size_3000.txt -o $OUTDIR -i $INDIR -a hg19 --region eu-west-1 -c 60 --core-instance-type c3.8xlarge --master-instance-type c3.8xlarge --core-instance-bid-price 0.35 --master-instance-bid-price 0.35 --no-consistent-view --deliverables itn,idx --ec2-key-name raileuwest1
