@@ -1,3 +1,4 @@
+# Load libraries
 library('RSQLite')
 library('magrittr')
 library('SRAdb')
@@ -278,7 +279,8 @@ search.field <- function(column, field) {
         lapply(as.vector) %>% ifelse(. == 'character(0)', 'NA', .) %>%
         lapply(`[[`, 1) %>%
         unlist() %>% 
-        str_replace_all(regex(field %p% ": ", ignore_case = TRUE), "")
+        str_replace_all(regex(field %p% ": ", ignore_case = TRUE), "") %>%
+        str_to_upper()
 }
 
 # Get cell type
@@ -389,15 +391,17 @@ convert_mis_to_na <- . %>% str_replace_na() %>%
     str_replace(regex("^not collected$", ignore_case = TRUE), "NA") %>%
     str_replace(regex("^none provided$", ignore_case = TRUE), "NA") %>%
     str_replace(regex("^unspecified$", ignore_case = TRUE), "NA") %>%
+    str_replace(regex("^none$", ignore_case = TRUE), "NA") %>%
     str_replace("^N/A$", "NA") %>%
     str_replace("^<NA>$", "NA") %>%
     str_replace("^--$", "NA") %>% 
     str_replace("$^", "NA") %>%
+    str_replace("$ ^", "NA") %>%
     ifelse(. == 'NA', NA, .)
     
 
-metadata <- lapply(metadata, convert_mis_to_na) %>% as.data.frame()
-
+metadata <- lapply(metadata, convert_mis_to_na) %>% 
+    lapply(str_trim) %>% as.data.frame()
 
 # Write table with all Illumina data
 write.table(metadata[match(order_list, rownames(metadata)),], "all_illumina_sra_for_human.txt", 

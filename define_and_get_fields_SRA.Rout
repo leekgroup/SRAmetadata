@@ -19,6 +19,7 @@ Type 'q()' to quit R.
 
 [Previously saved workspace restored]
 
+> # Load libraries
 > library('RSQLite')
 Loading required package: DBI
 > library('magrittr')
@@ -391,10 +392,10 @@ character(0)
 1028 7eff54451c973b4740369f597b523ae3 140986007 2012-06-21 21:34:32
 1029 630ad23699f7d54435820bc6f9f117f8 721033622 2012-06-21 21:34:54
       sradb_updated_file       date_download
-1025 2015-04-01 23:49:29 2015-05-21 22:18:46
-1027 2015-04-01 23:49:29 2015-05-21 22:18:46
-1028 2015-04-01 23:49:29 2015-05-21 22:18:46
-1029 2015-04-01 23:49:29 2015-05-21 22:18:46
+1025 2015-04-01 23:49:29 2015-05-25 19:53:23
+1027 2015-04-01 23:49:29 2015-05-25 19:53:23
+1028 2015-04-01 23:49:29 2015-05-25 19:53:23
+1029 2015-04-01 23:49:29 2015-05-25 19:53:23
                                                                           URL
 1025   ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR033/ERR033743/ERR033743.fastq.gz
 1027 ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR033/ERR033743/ERR033743_1.fastq.gz
@@ -479,7 +480,8 @@ integer(0)
 +         lapply(as.vector) %>% ifelse(. == 'character(0)', 'NA', .) %>%
 +         lapply(`[[`, 1) %>%
 +         unlist() %>% 
-+         str_replace_all(regex(field %p% ": ", ignore_case = TRUE), "")
++         str_replace_all(regex(field %p% ": ", ignore_case = TRUE), "") %>%
++         str_to_upper()
 + }
 > 
 > # Get cell type
@@ -593,15 +595,17 @@ integer(0)
 +     str_replace(regex("^not collected$", ignore_case = TRUE), "NA") %>%
 +     str_replace(regex("^none provided$", ignore_case = TRUE), "NA") %>%
 +     str_replace(regex("^unspecified$", ignore_case = TRUE), "NA") %>%
++     str_replace(regex("^none$", ignore_case = TRUE), "NA") %>%
 +     str_replace("^N/A$", "NA") %>%
 +     str_replace("^<NA>$", "NA") %>%
 +     str_replace("^--$", "NA") %>% 
 +     str_replace("$^", "NA") %>%
++     str_replace("$ ^", "NA") %>%
 +     ifelse(. == 'NA', NA, .)
 >     
 > 
-> metadata <- lapply(metadata, convert_mis_to_na) %>% as.data.frame()
-> 
+> metadata <- lapply(metadata, convert_mis_to_na) %>% 
++     lapply(str_trim) %>% as.data.frame()
 > 
 > # Write table with all Illumina data
 > write.table(metadata[match(order_list, rownames(metadata)),], "all_illumina_sra_for_human.txt", 
@@ -651,4 +655,4 @@ Packages -----------------------------------------------------------------------
 > 
 > proc.time()
    user  system elapsed 
-143.116   4.546 176.269 
+148.697   4.121 183.802 
