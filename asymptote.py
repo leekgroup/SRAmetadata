@@ -147,27 +147,34 @@ if __name__ == '__main__':
                     )
                 for _ in xrange(args.sample_count)
             ]
-    pool = multiprocessing.Pool(args.num_processes
-                                if args.num_processes is not None
-                                else multiprocessing.cpu_count(), init_worker,
-                                maxtasksperchild=5)
+    if args.num_processes is None:
+        num_processes = multiprocessing.cpu_count()
+    else:
+        num_processes = args.num_processes
+    pool = multiprocessing.Pool(num_processes, init_worker, maxtasksperchild=5)
     results = []
     to_dispatch = filter(lambda x: x is not None,
                          [next(sys.stdin, None)
                             for _ in xrange(args.chunk_size)])
-    dispatch_count = 0
+    dispatch_count, active = 0, 0
     while to_dispatch:
+        len_results_before = len(results)
         pool.apply_async(counts, [populations, to_dispatch, args.min_reads,
                                     args.sample_fraction, indexes],
                             callback=results.append)
         dispatch_count += 1
+        active += 1
+        while active >= num_processes:
+            sys.stderr.write('\x1b[KChunks processed: %d\r' % len(results))
+            active -= len(results) - len_results_before
+            time.sleep(0.4)
         to_dispatch = filter(lambda x: x is not None,
                              [next(sys.stdin, None)
                                 for _ in xrange(args.chunk_size)]
                         )
     while len(results) < dispatch_count:
         sys.stderr.write('\x1b[KChunks processed: %d\r' % len(results))
-        time.sleep(1)
+        time.sleep(0.4)
     process_time = time.time()
     print >>sys.stderr, '\x1b[KChunks processed in %02f s.' % (
                 process_time - start_time
