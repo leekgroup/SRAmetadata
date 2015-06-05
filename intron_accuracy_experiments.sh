@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Used PyPy 2.4.0 with GCC 4.8.2
-#gzip -cd collected_introns.tsv.gz | pypy asymptote.py --sample-fraction 0.05 -p 31 >intron_accuracy_sample_fraction_0.05.tsv
+gzip -cd collected_introns.tsv.gz | pypy asymptote.py --sample-fraction 0.05 -p 31 >intron_accuracy_sample_fraction_0.05.tsv
 gzip -cd collected_introns.tsv.gz | pypy asymptote.py --sample-fraction 0.03 -p 31 >intron_accuracy_sample_fraction_0.03.tsv
 gzip -cd collected_introns.tsv.gz | pypy asymptote.py --sample-fraction 0.07 -p 31 >intron_accuracy_sample_fraction_0.07.tsv
 gzip -cd collected_introns.tsv.gz | pypy asymptote.py --sample-fraction 0.09 -p 31 >intron_accuracy_sample_fraction_0.09.tsv
