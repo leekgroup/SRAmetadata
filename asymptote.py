@@ -140,7 +140,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     sys.stderr.write('\x1b[KPreparing chunks for processing...\r')
     indexes = range(args.sample_index_count)
-    random.seed(args.sample_fraction + args.min_reads)
+    random.seed((args.sample_fraction
+                    if args.sample_fraction is not None else 0)
+                + (args.min_reads
+                    if args.min_reads is not None else 0))
     populations = [
                 set(random.sample(indexes, sample_size))
                 for sample_size in xrange(
