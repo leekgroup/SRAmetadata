@@ -60,7 +60,7 @@ rail-rna prep elastic -m {manifest} -o {output_dir} -c 20 --region {region} --ma
                                                     ), 'w') as align_stream:
         align_stream.write(
 """#!/usr/bin/env bash
-python ~/rail/src align elastic -m {manifest} -i {input_dir} -o {output_dir} -a hg19 --isofrag-idx {isofrag_idx} --region {region} -c 60 --core-instance-type c3.8xlarge --master-instance-type c3.8xlarge --core-instance-bid-price {bid_price} --master-instance-bid-price {bid_price} --no-consistent-view --deliverables bed,tsv,bw --max-task-attempts 6 --ec2-key-name {key_name}
+rail-rna align elastic -m {manifest} -i {input_dir} -o {output_dir} -a hg19 --isofrag-idx {isofrag_idx} --region {region} -c 60 --core-instance-type c3.8xlarge --master-instance-type c3.8xlarge --core-instance-bid-price {bid_price} --master-instance-bid-price {bid_price} --no-consistent-view --deliverables bed,tsv,bw --max-task-attempts 6 --ec2-key-name {key_name}
 """.format(manifest=manifest_filename, input_dir=prep_output_dir,
             output_dir=align_output_dir, region=_region, 
             bid_price=_c3_8xlarge_bid_price, key_name=_key_name,
