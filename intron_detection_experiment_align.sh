@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ### Collections introns across 3000 SRA samples
-### Should be run on Rail-RNA v0.1.7
+### Should be run on Rail-RNA v0.1.7a
 ### Uses manifest file from version of SRAmetadata repo tagged "intron_detection_experiment"
 INDIR=s3://rail-eu-west-1/SRA3kp
 OUTDIR=s3://rail-eu-west-1/SRA3kat

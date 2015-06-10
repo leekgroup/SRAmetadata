@@ -4,7 +4,7 @@ create_batches.py
 
 Divides all-of-Illumina human RNA-seq SRA manifest file into batches of 
 approximately 500 reproducibly and creates scripts for running job flows on
-EMR. Use this rather than the R script. Use Rail-RNA v0.1.7 to reproduce
+EMR. Use this rather than the R script. Use Rail-RNA v0.1.7a to reproduce
 results.
 Usage: cat all_of_illumina_sra_manifest | python create_batches.py
 """
