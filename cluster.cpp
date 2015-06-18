@@ -7,10 +7,11 @@
 #include<string>
 #include<random>
 
-const int INTRON_COUNT = 11898514; // Bake intron count in so bitsets can be preallocated
+const unsigned int INTRON_COUNT = 11898514; // Bake intron count in so bitsets can be preallocated
 const float THRESHOLD = 0.5; // Jaccard index >= this value is + edge; else - edge
-const int SAMPLE_COUNT = 3000;
+const unsigned int SAMPLE_COUNT = 3000;
 const unsigned int SEED = 5;
+const unsigned int INTRON_THRESHOLD = 400; // Minimum number of introns in sample for it to be clustered
 
 void addIntron(const std::string &str, int columnIndex, std::vector<std::bitset<INTRON_COUNT> > &introns) {
    if (!str.length()) return;
@@ -49,32 +50,22 @@ int main() {
    std::cerr << "Clustering..." << std::endl;
    std::default_random_engine generator(SEED);
    std::uniform_int_distribution<int> distribution(0, SAMPLE_COUNT - 1);
-   std::vector<int> unclustered(SAMPLE_COUNT);
-   std::iota (std::begin(unclustered), std::end(unclustered), 0);
+   std::vector<int> unclustered(0);
+   for (int i=0; i<SAMPLE_COUNT; i++) {
+      if (introns[i].count() >= INTRON_THRESHOLD) {
+         unclustered.push_back(i)
+      }
+   }
+   //std::iota (std::begin(unclustered), std::end(unclustered), 0);
    std::vector<int> newUnclustered(0);
    std::vector<int> newCluster(0);
    int pivot, unioned, intersected;
    float jaccard;
    while (unclustered.size() > 0) {
       pivot = distribution(generator);
-      if (!introns[pivot].count()) {
-         // No introns? x it out
-         std::cout << "x " << std::to_string(pivot) << std::endl;
-         for (auto &i : unclustered) {
-            if (pivot != i) newUnclustered.push_back(i);
-         }
-         unclustered.swap(newUnclustered);
-         newUnclustered.clear();
-         continue;
-      }
       newCluster.push_back(pivot);
       for (auto &i : unclustered) {
          if (pivot == i) continue;
-         if (!introns[i].count()) {
-            // No introns? x it out
-            std::cout << "x " << std::to_string(i) << std::endl;
-            continue;
-         }
          intersected = (introns[pivot] & introns[i]).count();
          unioned = (introns[pivot] | introns[i]).count();
          if (unioned) {
