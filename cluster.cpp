@@ -53,7 +53,7 @@ int main() {
    std::vector<int> unclustered(0);
    for (int i=0; i<SAMPLE_COUNT; i++) {
       if (introns[i].count() >= INTRON_THRESHOLD) {
-         unclustered.push_back(i)
+         unclustered.push_back(i);
       }
    }
    //std::iota (std::begin(unclustered), std::end(unclustered), 0);
