@@ -8,7 +8,7 @@
 #include<random>
 
 const int INTRON_COUNT = 11898514; // Bake intron count in so bitsets can be preallocated
-const float THRESHOLD = 0.8; // Jaccard index >= this value is + edge; else - edge
+const float THRESHOLD = 0.5; // Jaccard index >= this value is + edge; else - edge
 const int SAMPLE_COUNT = 3000;
 const unsigned int SEED = 5;
 
@@ -30,6 +30,7 @@ void addIntron(const std::string &str, int columnIndex, std::vector<std::bitset<
       }
       i++;
    }
+   introns[std::stoi(str.substr(startIndex, numLength))].set(columnIndex);
    return;
 }
 
@@ -59,11 +60,21 @@ int main() {
       if (!introns[pivot].count()) {
          // No introns? x it out
          std::cout << "x " << std::to_string(pivot) << std::endl;
+         for (auto &i : unclustered) {
+            if (pivot != i) newUnclustered.push_back(i);
+         }
+         unclustered.swap(newUnclustered);
+         newUnclustered.clear();
          continue;
       }
       newCluster.push_back(pivot);
       for (auto &i : unclustered) {
          if (pivot == i) continue;
+         if (!introns[i].count()) {
+            // No introns? x it out
+            std::cout << "x " << std::to_string(i) << std::endl;
+            continue;
+         }
          intersected = (introns[pivot] & introns[i]).count();
          unioned = (introns[pivot] | introns[i]).count();
          if (unioned) {
