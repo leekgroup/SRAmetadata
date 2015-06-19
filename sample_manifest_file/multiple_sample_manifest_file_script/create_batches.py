@@ -40,7 +40,7 @@ for i, manifest in enumerate(manifests):
                     )
     align_output_dir = os.path.join(
                         _s3_bucket,
-                        'sra_batch_{}_sample_size_{}_align'.format(
+                        'sra_batch_{}_sample_size_{}_itn'.format(
                                                         i, len(manifest)
                                                     )
                     )
@@ -51,16 +51,16 @@ for i, manifest in enumerate(manifests):
                                                     ), 'w') as prep_stream:
         prep_stream.write(
 """#!/usr/bin/env bash
-rail-rna prep elastic -m {manifest} -o {output_dir} -c 20 --region {region} --master-instance-type c3.2xlarge --core-instance-type c3.2xlarge --no-consistent-view --master-instance-bid-price {bid_price} --core-instance-bid-price {bid_price} --ec2-key-name {key_name} --do-not-check-manifest --do-not-bin-quals --skip-bad-records --max-task-attempts 8
+rail-rna prep elastic -m {manifest} -o {output_dir} -c 20 --region {region} --master-instance-type c3.2xlarge --core-instance-type c3.2xlarge --no-consistent-view --master-instance-bid-price {bid_price} --core-instance-bid-price {bid_price} --ec2-key-name {key_name} --do-not-check-manifest --skip-bad-records --max-task-attempts 8
 """.format(manifest=manifest_filename, output_dir=prep_output_dir, region=_region, 
             bid_price=_c3_2xlarge_bid_price, key_name=_key_name)
 )
-    with open('sra_batch_{}_sample_size_{}_align.sh'.format(
+    with open('sra_batch_{}_sample_size_{}_itn.sh'.format(
                                                         i, len(manifest)
                                                     ), 'w') as align_stream:
         align_stream.write(
 """#!/usr/bin/env bash
-rail-rna align elastic -m {manifest} -i {input_dir} -o {output_dir} -a hg19 --isofrag-idx {isofrag_idx} --region {region} -c 60 --core-instance-type c3.8xlarge --master-instance-type c3.8xlarge --core-instance-bid-price {bid_price} --master-instance-bid-price {bid_price} --no-consistent-view --deliverables bed,tsv,bw --max-task-attempts 6 --ec2-key-name {key_name}
+rail-rna align elastic -m {manifest} -i {input_dir} -o {output_dir} -a hg19 --region {region} -c 60 --core-instance-type c3.8xlarge --master-instance-type c3.8xlarge --core-instance-bid-price {bid_price} --master-instance-bid-price {bid_price} --no-consistent-view --deliverables itn --max-task-attempts 6 --ec2-key-name {key_name}
 """.format(manifest=manifest_filename, input_dir=prep_output_dir,
             output_dir=align_output_dir, region=_region, 
             bid_price=_c3_8xlarge_bid_price, key_name=_key_name,
