@@ -1,3 +1,8 @@
 Notes:
 The following line was removed from sra_batch_9_sample_size_500.txt .
 ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR651/SRR651690/SRR651690_1.fastq.gz	61ee667607c4dfc745d9d48f65fa7b42	ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR651/SRR651690/SRR651690_2.fastq.gz	5912710db7944db275c9b18329036fcd	SRP000941_SRS306616_SRX190128_SRR651690-1-1
+
+The following line was removed from sra_batch_13_sample_size_500.txt .
+ftp://ftp.sra.ebi.ac.uk/vol1/fastq/DRR023/DRR023700/DRR023700_1.fastq.gz	726905d8b02e3cd92268e3e5a50f7b6b	ftp://ftp.sra.ebi.ac.uk/vol1/fastq/DRR023/DRR023700/DRR023700_2.fastq.gz	5a00430a3f036c8bb553d9489cad1d99	DRP001797_DRS016623_DRX021456_DRR023700-1-1
+
+--do-not-check-manifest was removed from prep scrips from SRA batch 13 on.
