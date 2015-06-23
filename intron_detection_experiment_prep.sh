@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ### Preprocesses 3000 SRA samples to obtain introns and their "initial" coverage across samples
-### Should be run on Rail-RNA v0.1.7
+### Should be run on Rail-RNA v0.1.7a
 ### Uses manifest file from version of SRAmetadata repo tagged "intron_detection_experiment"
 OUTDIR=s3://rail-eu-west-1/SRA3kp
 SRAMETADATAREPO=/Users/eterna/SRAmetadata # Location of SRA metadata repo. Its HEAD should be at "intron_detection_experiment".
