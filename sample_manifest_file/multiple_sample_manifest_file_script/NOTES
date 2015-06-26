@@ -11,3 +11,5 @@ Again, sra_batch_21_sample_size_500_itn.sh failed on its first step due to 2015-
 
 Batch 23 failed on second step (aligning readlets) with error 2015-06-24 07:25:36,239 INFO org.apache.hadoop.mapreduce.Job (main): Job job_1435111488544_0002 failed with state FAILED due to: Application application_1435111488544_0002 failed 2 times due to AM Container for appattempt_1435111488544_0002_000002 exited with  exitCode: -1000 due to: Could not obtain block: BP-911468036-172.31.0.202-1435110894329:blk_1073741903_15794 file=/tmp/hadoop-yarn/staging/hadoop/.staging/job_1435111488544_0002/job.splitmetainfo
 .Failing this attempt.. Failing the application.. Cloned, deleted first step, halved number of concurrent reducers (from 32 to 16 per node) in second step with "-D mapreduce.reduce.memory.mb= 3328 -D mapreduce.reduce.java.opts=-Xmx2662m", deleted any incomplete output of second step on S3 (the dir s3://rail-eu-west-1/sra_batch_23_sample_size_500_itn.intermediate), and resumed.
+
+Changed bid price to 0.70 on batches 36 and 37 when they failed.
