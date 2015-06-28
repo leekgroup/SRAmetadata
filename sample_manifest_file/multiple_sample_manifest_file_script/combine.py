@@ -231,11 +231,12 @@ if __name__ == '__main__':
     containing_dir = os.path.dirname(os.path.realpath(__file__))
     with open('index_to_SRA_accession.tsv', 'w') as output_stream:
         for i in xrange(43):
-            with open(os.path.join(
-                            containing_dir,
-                            glob.glob('sra_batch_%d_sample_size*.txt' % i)[0]
-                        )
-                    ) as input_stream:
+            with open(glob.glob(
+                            os.path.join(
+                                containing_dir,
+                                'sra_batch_%d_sample_size*.txt' % i
+                            )
+                        )[0]) as input_stream:
                 for j, line in enumerate(input_stream):
                     tokens = line.strip().split('\t')
                     print (str(i * 500 + j) + '\t'
