@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Downloads all files with collected_introns results from all-of-SRA runs and merges them into one file
-# This script requires the AWS CLI
+# This script requires the AWS CLI, PyPy
+# Used PyPy v2.4.0
 # $1: path to destination directory
+# $2: path to Bowtie index for hg19
 MANIFESTS=/scratch0/langmead-fs1/SRAmetadata/sample_manifest_file/multiple_sample_manifest_file_script # Path to batch manifest files
 BUCKET=s3://rail-eu-west-1 # Where batch results ended up
-mkdir -p $1
+OUTPUTDIR=$1
+BOWTIEIDX=$2
+mkdir -p ${OUTPUTDIR}
 cd $1
 # Download
 for i in {0..41}; do aws s3 cp ${BUCKET}/sra_batch_${i}_sample_size_500_itn/collected_introns/collected_introns.tsv.gz ./batch_${i}.tsv.gz; done
@@ -16,3 +20,4 @@ for i in {0..42}; do (gzip -cd batch_${i}.tsv.gz | sort -k1,1 -k2,2n -k3,3n | aw
 # Note that two sample indexes will be missing because they were removed from batch manifest files. See NOTES for more information.
 cmd="sort -m -k2,2 -k3,3n -k4,4n"; for i in {0..42}; do cmd="$cmd <(gzip -cd batch_${i}.sorted.tsv.gz) "; done
 eval "$cmd" | gzip >unmerged_intron_lines.tsv.gz
+gzip -cd unmerged_intron_lines.tsv.gz | pypy ${MANIFESTS}/combine.py --bowtie-idx ${BOWTIEIDX} | gzip >all_SRA_introns.tsv.gz
