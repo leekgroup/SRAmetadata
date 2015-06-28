@@ -245,7 +245,7 @@ if __name__ == '__main__':
                 for j, line in enumerate(input_stream):
                     tokens = line.strip().split('\t')
                     print >>output_stream, (str(i * 500 + j) + '\t'
-                            + '\t'.join(tokens[-1].split('_')[:-1]))
+                            + '\t'.join(tokens[-1][:-4].split('_')))
 
     reference_index = BowtieIndexReference(args.bowtie_idx)
     for intron, lines in itertools.groupby(
