@@ -269,7 +269,7 @@ if __name__ == '__main__':
                                 for original_index in tokens[-2].split(',')]
             pairs.extend(zip(sample_indexes, coverages))
         pairs.sort(key=lambda x: x[0])
-        print '\t'.join([chrom, str(start), str(end),
+        print '\t'.join([chrom, str(start), str(end), intron[0][-1],
                             start_motif, end_motif,
                             ','.join([str(pair[0]) for pair in pairs]),
                             ','.join([str(pair[1]) for pair in pairs])])
