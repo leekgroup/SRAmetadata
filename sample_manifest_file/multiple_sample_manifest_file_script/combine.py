@@ -262,5 +262,5 @@ if __name__ == '__main__':
         pairs.sort(key=lambda x: x[0])
         print '\t'.join([chrom, str(start), str(end),
                             start_motif, end_motif,
-                            ','.join(pair[0] for pair in pairs),
-                            ','.join(pair[1] for pair in pairs)])
+                            ','.join([str(pair[0]) for pair in pairs]),
+                            ','.join([str(pair[1]) for pair in pairs])])
