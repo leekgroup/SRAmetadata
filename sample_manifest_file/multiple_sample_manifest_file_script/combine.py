@@ -19,6 +19,7 @@ Also writes a file mapping new indexes to SRA accession numbers.
 """
 import sys
 import itertools
+import glob
 
 # This code is taken from bowtie_index.py in Rail-RNA
 import os
