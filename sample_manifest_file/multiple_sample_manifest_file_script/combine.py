@@ -239,17 +239,16 @@ if __name__ == '__main__':
                         )[0]) as input_stream:
                 for j, line in enumerate(input_stream):
                     tokens = line.strip().split('\t')
-                    print (str(i * 500 + j) + '\t'
+                    print >>output_stream, (str(i * 500 + j) + '\t'
                             + '\t'.join(tokens[-1].split('_')[:-1]))
 
     reference_index = BowtieIndexReference(args.bowtie_idx)
     for intron, lines in itertools.groupby(
                             sys.stdin, key=lambda x: x.split('\t')[1:4]
                         ):
-        intron_tokens = intron.split('\t')
-        chrom = intron_tokens[0][:-1]
-        start = int(intron_tokens[1])
-        end = int(intron_tokens[2]) - 1
+        chrom = intron[0][:-1]
+        start = int(intron[1])
+        end = int(intron[2]) - 1
         start_motif = reference_index.get_stretch(chrom, start, 2)
         end_motif = reference_index.get_stretch(chrom, end - 1, 2)
         pairs = []
