@@ -20,4 +20,4 @@ for i in {0..42}; do (gzip -cd batch_${i}.tsv.gz | sort -k1,1 -k2,2n -k3,3n | aw
 # Note that two sample indexes will be missing because they were removed from batch manifest files. See NOTES for more information.
 cmd="sort -m -k2,2 -k3,3n -k4,4n"; for i in {0..42}; do cmd="$cmd <(gzip -cd batch_${i}.sorted.tsv.gz) "; done
 eval "$cmd" | gzip >unmerged_intron_lines.tsv.gz
-gzip -cd unmerged_intron_lines.tsv.gz | pypy ${MANIFESTS}/combine.py --bowtie-idx ${BOWTIEIDX} | gzip >all_SRA_introns.tsv.gz
+gzip -cd unmerged_intron_lines.tsv.gz | pypy ${MANIFESTS}/combine.py --bowtie-idx ${BOWTIEIDX} | sort -k1,1 -k2,2n -k3,3n | gzip >all_SRA_introns.tsv.gz
