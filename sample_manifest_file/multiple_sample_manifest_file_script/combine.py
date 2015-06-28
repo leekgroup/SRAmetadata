@@ -258,7 +258,7 @@ if __name__ == '__main__':
             coverages = tokens[-1].split(',')
             sample_indexes = [500 * batch_index + int(original_index)
                                 for original_index in tokens[-1].split(',')]
-            pairs.append(zip(sample_indexes, coverages))
+            pairs.extend(zip(sample_indexes, coverages))
         pairs.sort(key=lambda x: x[0])
         print '\t'.join([chrom, str(start), str(end),
                             start_motif, end_motif,
