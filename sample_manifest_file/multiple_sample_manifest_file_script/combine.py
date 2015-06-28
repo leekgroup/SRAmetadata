@@ -229,6 +229,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # Write index-to-accession file
     containing_dir = os.path.dirname(os.path.realpath(__file__))
+    reversed_complements = {
+            ('CT', 'AC') : ('GT', 'AG'),
+            ('CT', 'GC') : ('GC', 'AG'),
+            ('GT', 'AT') : ('AT', 'AC')
+        }
     with open('index_to_SRA_accession.tsv', 'w') as output_stream:
         for i in xrange(43):
             with open(glob.glob(
@@ -249,15 +254,19 @@ if __name__ == '__main__':
         chrom = intron[0][:-1]
         start = int(intron[1])
         end = int(intron[2]) - 1
-        start_motif = reference_index.get_stretch(chrom, start, 2)
-        end_motif = reference_index.get_stretch(chrom, end - 1, 2)
+        start_motif = reference_index.get_stretch(chrom, start - 1, 2)
+        end_motif = reference_index.get_stretch(chrom, end - 2, 2)
+        if intron[0][-1] == '-':
+            start_motif, end_motif = reversed_complements[
+                                            (start_motif, end_motif)
+                                        ]
         pairs = []
         for line in lines:
             tokens = line.strip().split('\t')
             batch_index = int(tokens[0])
             coverages = tokens[-1].split(',')
             sample_indexes = [500 * batch_index + int(original_index)
-                                for original_index in tokens[-1].split(',')]
+                                for original_index in tokens[-2].split(',')]
             pairs.extend(zip(sample_indexes, coverages))
         pairs.sort(key=lambda x: x[0])
         print '\t'.join([chrom, str(start), str(end),
