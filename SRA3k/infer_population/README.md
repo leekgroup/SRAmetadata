@@ -2,9 +2,11 @@
 
 ## INDELS
 
-*Select common and variable indels from the 1000 genomes project
-*Select these indels from the GEUVADIS data
-*Run a principal component analysis in order to identify stratification
+-Select common and variable indels from the 1000 genomes project
+
+-Select these indels from the GEUVADIS data
+
+-Run a principal component analysis in order to identify stratification
 
 ### Get Files from 1000 genomes project
 
