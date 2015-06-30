@@ -23,7 +23,7 @@ for line in sys.stdin:
         assert start_motif == 'AT'
         motif_number = 2
     print ('{{ chrom: {chrom}, start: {start}, end: {end}, forward: {forward}, '
-           'motif: {motif}, coverages : [ {coverages} ]}}').format(
+           'motif: {motif}, coverages : [ {coverages} ] }}').format(
                     chrom=chrom,
                     start=start,
                     end=end,
