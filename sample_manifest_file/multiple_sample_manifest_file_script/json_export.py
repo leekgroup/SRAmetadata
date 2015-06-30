@@ -29,7 +29,7 @@ for line in sys.stdin:
                     end=end,
                     forward=('true' if strand == '+' else 'false'),
                     motif=motif_number,
-                    coverages=', '.join(('%s : %s' % (
+                    coverages=', '.join(('{ id: %s, coverage: %s }' % (
                                                 sample_indexes[i], coverages[i]
                                             )) for i in xrange(
                                                         len(sample_indexes)
