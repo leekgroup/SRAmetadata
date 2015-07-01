@@ -13,6 +13,7 @@ Tab-separated output fields:
 2. Precision of SRA sample's introns by annotation's introns
 3. Recall of SRA sample's introns by annotation's introns
 4. Recall of SRA sample's spliced reads by annotation's introns
+5. Total introns found in SRA sample
 """
 
 import sys
@@ -48,5 +49,6 @@ for sample in totals:
         print '\t'.join(str(el) for el in [
                 sample, float(overlaps[sample]) / annotation_intron_count,
                 float(overlaps[sample]) / totals[sample],
-                float(weighted_overlaps[sample]) / weighted_totals[sample]
+                float(weighted_overlaps[sample]) / weighted_totals[sample],
+                totals[sample]
             ])
