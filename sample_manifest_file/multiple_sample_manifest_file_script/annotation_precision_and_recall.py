@@ -44,8 +44,8 @@ annotation_intron_count = len(annotation_introns)
 
 for sample in totals:
 	if totals[sample] >= _SUPPRESS:
-		print '\t'.join([
-				str(sample), float(overlaps[sample]) / annotation_intron_count,
+		print '\t'.join(str(el) for el in [
+				sample, float(overlaps[sample]) / annotation_intron_count,
 				float(overlaps[sample]) / totals[sample],
 				float(weighted_overlaps[sample]) / weighted_totals[sample]
 			])
