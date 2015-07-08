@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Commands for loading the redis database with introns
-cd $(pwd)
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+cd $DIR
 REDIS=/scratch2/langmead-fs1/redis/redis-3.0.2/src
 SRAINTRONS=/scratch0/langmead-fs1/sraintrons
 MAWK=/scratch0/langmead-fs1/sraintrons/mawk-1.3.4-20150503/mawk
