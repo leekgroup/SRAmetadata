@@ -20,4 +20,8 @@ for i in {0..42}; do (gzip -cd batch_${i}.tsv.gz | sort -k1,1 -k2,2n -k3,3n | aw
 # Note that two sample indexes will be missing because they were removed from batch manifest files. See NOTES for more information.
 cmd="sort -m -k2,2 -k3,3n -k4,4n"; for i in {0..42}; do cmd="$cmd <(gzip -cd batch_${i}.sorted.tsv.gz) "; done
 eval "$cmd" | gzip >unmerged_intron_lines.tsv.gz
-gzip -cd unmerged_intron_lines.tsv.gz | pypy ${MANIFESTS}/combine.py --bowtie-idx ${BOWTIEIDX} | sort -k1,1 -k2,2n -k3,3n | gzip >all_SRA_introns.tsv.gz
+# Note the --fix-batch-9 command-line parameter below! Batch 9 was preprocessed with the manifest file sra_batch_9_sample_size_500.txt
+# but aligned with the manifest file sra_batch_9_sample_size_500_old.txt, which has an extra sample that wasn't found on the server.
+# (See NOTES for which sample it was and how it was removed.) The --fix-batch-9 command-line parameter uses the old manifest file
+# to extract the proper sample indexes.
+gzip -cd unmerged_intron_lines.tsv.gz | pypy ${MANIFESTS}/combine.py --bowtie-idx ${BOWTIEIDX} --fix-batch-9 | sort -k1,1 -k2,2n -k3,3n | gzip >all_SRA_introns.tsv.gz

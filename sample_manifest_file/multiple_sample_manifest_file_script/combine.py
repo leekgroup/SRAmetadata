@@ -226,6 +226,15 @@ if __name__ == '__main__':
             formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--bowtie-idx', type=str, required=True,
         help='Path to Bowtie index basename')
+    parser.add_argument('--fix-batch-9', action='store_const',
+        const=True, default=False,
+        help='Uses old manifest file for sample indexes from '
+             'batch 9. Addresses how during our batch runs on '
+             'all of SRA, we used a manifest file with a '
+             'sample eliminated to preprocess the data but '
+             'a different manifest file with that sample '
+             'included to search for introns. See NOTES '
+             'for more information.')
     args = parser.parse_args()
     # Write index-to-accession file
     containing_dir = os.path.dirname(os.path.realpath(__file__))
@@ -241,7 +250,22 @@ if __name__ == '__main__':
                                 containing_dir,
                                 'sra_batch_%d_sample_size*.txt' % i
                             )
-                        )[0]) as input_stream:
+                        )[0] if i != 9 else 
+                    ([batch_9_file for batch_9_file in glob.glob(
+                            os.path.join(
+                                containing_dir,
+                                'sra_batch_%d_sample_size*.txt' % i
+                            )
+                        ) if 'old' in batch_9_file and args.fix_batch_9][0]
+                          else
+                     [batch_9_file for batch_9_file in glob.glob(
+                            os.path.join(
+                                containing_dir,
+                                'sra_batch_%d_sample_size*.txt' % i
+                            )
+                        )
+                     if 'old' not in batch_9_file and not args.fix_batch_9][0]
+                    )) as input_stream:
                 for j, line in enumerate(input_stream):
                     tokens = line.strip().split('\t')
                     print >>output_stream, (str(i * 500 + j) + '\t'
