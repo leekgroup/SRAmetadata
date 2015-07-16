@@ -258,7 +258,7 @@ if __name__ == '__main__':
         filenames[9] = os.path.join(containing_dir,
                             'sra_batch_9_sample_size_500.txt')
     with open('index_to_SRA_accession.tsv', 'w') as output_stream:
-        for filename in filenames:
+        for i, filename in enumerate(filenames):
             with open(filename) as input_stream:
                 for j, line in enumerate(input_stream):
                     tokens = line.strip().split('\t')
