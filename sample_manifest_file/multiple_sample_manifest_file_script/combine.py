@@ -243,29 +243,23 @@ if __name__ == '__main__':
             ('CT', 'GC') : ('GC', 'AG'),
             ('GT', 'AT') : ('AT', 'AC')
         }
+    filenames = [glob.glob(
+                            os.path.join(
+                                containing_dir,
+                                'sra_batch_%d_sample_size*.txt' % i
+                            )
+                        )[0] for i in xrange(43)]
+    if args.fix_batch_9:
+        # Use old manifest file with 500 samples
+        filenames[9] = os.path.join(containing_dir,
+                            'sra_batch_9_sample_size_500_old.txt')
+    else:
+        # Use new manifest file with 499 sample
+        filenames[9] = os.path.join(containing_dir,
+                            'sra_batch_9_sample_size_500.txt')
     with open('index_to_SRA_accession.tsv', 'w') as output_stream:
-        for i in xrange(43):
-            with open(glob.glob(
-                            os.path.join(
-                                containing_dir,
-                                'sra_batch_%d_sample_size*.txt' % i
-                            )
-                        )[0] if i != 9 else 
-                    ([batch_9_file for batch_9_file in glob.glob(
-                            os.path.join(
-                                containing_dir,
-                                'sra_batch_%d_sample_size*.txt' % i
-                            )
-                        ) if 'old' in batch_9_file and args.fix_batch_9][0]
-                          else
-                     [batch_9_file for batch_9_file in glob.glob(
-                            os.path.join(
-                                containing_dir,
-                                'sra_batch_%d_sample_size*.txt' % i
-                            )
-                        )
-                     if 'old' not in batch_9_file and not args.fix_batch_9][0]
-                    )) as input_stream:
+        for filename in filenames:
+            with open(filename) as input_stream:
                 for j, line in enumerate(input_stream):
                     tokens = line.strip().split('\t')
                     print >>output_stream, (str(i * 500 + j) + '\t'
