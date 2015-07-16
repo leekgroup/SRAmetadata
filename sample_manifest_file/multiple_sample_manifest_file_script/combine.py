@@ -262,6 +262,11 @@ if __name__ == '__main__':
             with open(filename) as input_stream:
                 for j, line in enumerate(input_stream):
                     tokens = line.strip().split('\t')
+                    if args.fix_batch_9 \
+                        and 'SRP000941_SRS306616_SRX190128_SRR651690-1-1' \
+                        in tokens:
+                        # ignore sample because it wasn't found
+                        continue
                     print >>output_stream, (str(i * 500 + j) + '\t'
                             + '\t'.join(tokens[-1][:-4].split('_')))
 
