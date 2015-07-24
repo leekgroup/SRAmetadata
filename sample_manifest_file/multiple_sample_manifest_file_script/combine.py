@@ -226,6 +226,15 @@ if __name__ == '__main__':
             formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--bowtie-idx', type=str, required=True,
         help='Path to Bowtie index basename')
+    parser.add_argument('--fix-batch-9', action='store_const',
+        const=True, default=False,
+        help='Uses old manifest file for sample indexes from '
+             'batch 9. Addresses how during our batch runs on '
+             'all of SRA, we used a manifest file with a '
+             'sample eliminated to preprocess the data but '
+             'a different manifest file with that sample '
+             'included to search for introns. See NOTES '
+             'for more information.')
     args = parser.parse_args()
     # Write index-to-accession file
     containing_dir = os.path.dirname(os.path.realpath(__file__))
@@ -234,16 +243,30 @@ if __name__ == '__main__':
             ('CT', 'GC') : ('GC', 'AG'),
             ('GT', 'AT') : ('AT', 'AC')
         }
-    with open('index_to_SRA_accession.tsv', 'w') as output_stream:
-        for i in xrange(43):
-            with open(glob.glob(
+    filenames = [glob.glob(
                             os.path.join(
                                 containing_dir,
                                 'sra_batch_%d_sample_size*.txt' % i
                             )
-                        )[0]) as input_stream:
+                        )[0] for i in xrange(43)]
+    if args.fix_batch_9:
+        # Use old manifest file with 500 samples
+        filenames[9] = os.path.join(containing_dir,
+                            'sra_batch_9_sample_size_500_old.txt')
+    else:
+        # Use new manifest file with 499 sample
+        filenames[9] = os.path.join(containing_dir,
+                            'sra_batch_9_sample_size_500.txt')
+    with open('index_to_SRA_accession.tsv', 'w') as output_stream:
+        for i, filename in enumerate(filenames):
+            with open(filename) as input_stream:
                 for j, line in enumerate(input_stream):
                     tokens = line.strip().split('\t')
+                    if args.fix_batch_9 \
+                        and 'SRP000941_SRS306616_SRX190128_SRR651690-1-1' \
+                        in tokens:
+                        # ignore sample because it wasn't found
+                        continue
                     print >>output_stream, (str(i * 500 + j) + '\t'
                             + '\t'.join(tokens[-1][:-4].split('_')))
 
