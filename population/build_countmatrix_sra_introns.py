@@ -1,12 +1,11 @@
 #!/usr/bin/python
 
 # AUTOR: Jose Alquicira Hernandez
-# PURPOSE: 
+# PURPOSE: Get count matrix for introns
 # DATE: Jan 10th, 2015
 
 # PARAMETERS:
-# 1st = file 1
-# 2nd = file 2 
+# 1st = tsv output file from Rail RNA
 
 import sys
 
