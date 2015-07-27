@@ -2,19 +2,20 @@
 
 # AUTOR: Jose Alquicira Hernandez
 # PURPOSE: Get count matrix for introns
-# DATE: Jan 10th, 2015
 
 # PARAMETERS:
 # 1st = tsv output file from Rail RNA
 
 import sys
+import gzip
 
 tsv = sys.argv[1] 
 reads = []
-n = 21504
+n = 21505
 
 file = open(tsv, 'r')
-output = open("countmatrix_introns.txt", 'w')
+output = gzip.open("countmatrix_introns.gz", 'w')
+#output = open("countmatrix_introns.txt", 'w')
 for l in file:
     l = l.strip('\n').split('\t')
     reads = map(int, l[7].split(','))
