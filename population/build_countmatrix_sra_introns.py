@@ -19,7 +19,7 @@ output = gzip.open("countmatrix_introns.gz", 'w')
 for l in file:
     l = l.strip('\n').split('\t')
     reads = map(int, l[7].split(','))
-    if max(reads) >= 5 and float(sum(reads))/len(reads) > 0.95:
+    if max(reads) >= 100 and float(sum(reads))/len(reads) > 0.95:
         all_sample_reads = ['0'] * n
         indexes = map(int, l[6].split(','))
         j = 0
