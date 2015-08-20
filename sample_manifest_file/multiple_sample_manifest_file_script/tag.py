@@ -14,7 +14,7 @@ import re
 if __name__ == '__main__':
     # Define tag clusters; each variable is a different cluster of keywords
     cell_line = set(['line:', 'cellline', 'cell line', 'a549', '\\bt24_',
-                        'geuv', 'hela', 'hesc'])
+                        'geuv', 'hela', 'hesc', 'hepg2', 'hep g2'])
     small_rna = set(['mirna', 'microrna', 'small rna', '\\bsrna'])
     single_cell = set(['single-cell', 'single cell'])
     fetal = set(['fetal', 'fetus'])
@@ -29,7 +29,7 @@ if __name__ == '__main__':
                 'stem cell', 'primary', 'cancer'] + original_header
     print '\t'.join(header)
     for line in sys.stdin:
-    	lower_line = line.strip().lower()
+    	lower_line = line.lower()
         for regexp in regexps:
         	if re.search(regexp, lower_line):
         		sys.stdout.write('1\t')
