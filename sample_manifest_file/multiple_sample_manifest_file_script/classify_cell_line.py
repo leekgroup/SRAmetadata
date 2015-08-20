@@ -7,6 +7,7 @@ for line in sys.stdin:
 	notrna = 'FALSE'
 	reference = 'FALSE'
 	small = 'FALSE'
+	differentiated = 'FALSE'
 	if 'chipseq' in lower_line:
 		notrna = 'TRUE'
 	if 'mirna' in lower_line or 'srna' in lower_line \
@@ -23,10 +24,16 @@ for line in sys.stdin:
 		small = 'TRUE'
 	if 'METSIM' in line:
 		small = 'TRUE'
+	if '2014-03-06T16:48:' in line \
+		and 'source_name:Dorsolateral prefrontal cortex;' in line:
+		small = 'TRUE'
+	if '2014-03-06T16:48:' in line and ';subject id:' in line:
+		small = 'TRUE'
 	if single =='TRUE' or small == 'TRUE' or notrna == 'TRUE':
-		#print '\t'.join([notrna, single, small, reference, 'NA', 'NA', line]),
+		#print '\t'.join([notrna, single, small, reference,
+		#					differentiated, 'NA', 'NA', line]),
 		continue
-	cell_line = line.strip().replace(
+	cell_line = lower_line.strip().replace(
 						'line:', '\x1c'
 					).partition('\x1c')[2].partition(';')[0]
 	# Cover exceptions
@@ -162,5 +169,40 @@ for line in sys.stdin:
 		cell_line = 'U2OS'
 	if not cell_line and ('A-549' in line or 'A549' in line):
 		cell_line = 'A-549'
+	if not cell_line \
+		and 'source_name:Neural differentiation;' in line:
+		cell_line = 'H1'
+		differentiated = line.split('\t')[4].partition('_')[0]
+	if not cell_line and 'human oral biofilm' in line:
+		cell_line = 'FALSE'
+	if not cell_line and 'Large intestine tumor' in line:
+		cell_line = 'FALSE'
+	if not cell_line and 'source_name:non-neoplastic brain tissue' in line:
+		cell_line = 'FALSE'
+	if not cell_line and 'source_name:skeletal muscle;' in line:
+		cell_line = 'FALSE'
+	if not cell_line and 'GSM754335' in line:
+		cell_line = 'LCL'
+	if not cell_line and 'glioblastoma cell-line' in line:
+		cell_line = line.split('\t')[5].split(' ')[0]
+	if not cell_line and ';biomaterial_provider:Nijman' in line:
+		cell_line = line.split('\t')[4][4:].replace('.', ' ')
+	if not cell_line and 'HBRR_' in line:
+		cell_line = 'FALSE'
+		reference = 'HBRR'
+	if not cell_line and ' cells' in lower_line:
+		if 'peripheral blood mononuclear ' in lower_line \
+			or 'source tissue:tonsil' in lower_line \
+			or 'myeloid cells' in lower_line \
+			or 'CD34+' in line or 'CD4' in line or 'Treg' in line \
+			or 'source_name:Large airway epithelial cells;' in line \
+			or 'source_name:neonatal dermal BECs' in line \
+			or 'Induced pluripotent' in line \
+			or 'source_name:whole peripheral blood;' in line \
+			or 'cell type:Primary Dermal Fibroblast;' in line \
+			or 'airway basal' in line:
+			cell_line = 'FALSE'
+		else:
+			pass
 	if not cell_line:
 		print line,
