@@ -2,6 +2,8 @@
 import sys
 import re
 
+print sys.stdin.readline(),
+
 for line in sys.stdin:
 	lower_line = line.lower()
 	notrna = 'FALSE'

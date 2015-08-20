@@ -22,6 +22,10 @@ def silent_value(*args):
     except KeyError:
         return 'NA'
 
+print '\t'.join(
+        ['sample', 'submission date', 'publication date', 'last update',
+         'title', 'ids', 'attributes']
+    )
 for line in sys.stdin:
     sample, _, xml = line.strip().split('\t')
     xml = xmltodict.parse(xml)
