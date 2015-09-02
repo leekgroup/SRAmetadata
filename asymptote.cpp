@@ -4,7 +4,7 @@
 
    Consider an exon-exon junction filter where a junction is kept if and only
    if it is found in >= some proportion K of RNA-seq samples analyzed.
-   This script takes S random samples of N RNA-seq samples of input junction
+   This program takes S random samples of N RNA-seq samples of input junction
    counts from a total of Q RNA-seq samples at various values of K and finds
    the number of junctions J that make it past the filter, writing a table
    to stdout whose rows have the following format.
@@ -14,6 +14,8 @@
    The expected input from stdin is the junction output of Rail for all of SRA.
    Note that some constants dependent on this input data are baked into the
    code below.
+
+   Requires Boost.
    */
 
 #include<iostream>
@@ -21,27 +23,52 @@
 #include<bitset>
 #include<string>
 #include<random>
+#include "boost/multi_array.hpp"
 
 const unsigned int INTRON_COUNT = 42882032; // Bake intron count in so bitsets can be preallocated
 const unsigned int SAMPLE_COUNT = 21506; // Total number of samples
-const unsigned int RANDOM_COUNT = 50; // Number of random samples S to take at each value of N
-const unsigned int SAMPLE_INTERVAL = 100; // Minimum value of N defined above as well as interval between successive values pf N studied
+const unsigned int RANDOM_COUNT = 1; // Number of random samples S to take at each value of N
+const unsigned int SAMPLE_INTERVAL = 1000; // Minimum value of N defined above as well as interval between successive values pf N studied
 const unsigned int SAMPLE_MAX = 20000; // Maximum value of N defined above as well as interval between successive values of N studied
-const unsigned double PROPORTION_INTERVAL = 0.005; // Minimum value of K defined above as well as interval between successive values of K studied
-const unsigned double PROPORTION_MAX = 0.03; // Maximum value of K studied
+const double PROPORTION_INTERVAL = 0.005; // Minimum value of K defined above as well as interval between successive values of K studied
+const double PROPORTION_MAX = 0.03; // Maximum value of K studied
 const unsigned int SEED = 5; // Or whatever; we used 5 for reproducibility
 
-void addIntron(const std::string &str, int columnIndex, std::vector<std::bitset<INTRON_COUNT> > &introns) {
-   if (!str.length()) return;
-   size_t tabCount = 0, i = 0;
-   while (tabCount < 3) {
+/* Sampling from range without replacement implementation inspired
+by http://stackoverflow.com/questions/28287138/c-randomly-sample-k-numbers-from-range-0n-1-n-k-without-replacement */
+
+std::bitset<SAMPLE_COUNT> randomSet(int r, std::default_random_engine& gen)
+{
+    std::bitset<SAMPLE_COUNT> randomSample;
+    for (int k = SAMPLE_COUNT - r; k < SAMPLE_COUNT; ++k) {
+        int v = std::uniform_int_distribution<>(1, k)(gen);
+
+        // there are two cases.
+        // v is not in candidates ==> add it
+        // v is in candidates ==> well, k is definitely not, because
+        // this is the first iteration in the loop that we could've
+        // picked something that big.
+        if (!randomSample[v]) {
+            randomSample.set(v);
+        } else {
+            randomSample.set(k);
+        }
+    }
+    return randomSample;
+}
+
+std::bitset<SAMPLE_COUNT> intronFromLine(const std::string &str) {
+   std::bitset<SAMPLE_COUNT> intronInSampleQ;
+   if (!str.length()) return intronInSampleQ;
+   int tabCount = 0, i = 0;
+   while (tabCount < 6) {
       if (str[i] == '\t') tabCount++;
       i++;
    }
    int startIndex = i, numLength = 0;
    while (str[i] != '\t') {
       if (str[i] == ',') {
-         introns[std::stoi(str.substr(startIndex, numLength))].set(columnIndex);
+         intronInSampleQ.set(std::stoi(str.substr(startIndex, numLength)));
          startIndex = i + 1;
          numLength = 0;
       } else {
@@ -49,28 +76,59 @@ void addIntron(const std::string &str, int columnIndex, std::vector<std::bitset<
       }
       i++;
    }
-   introns[std::stoi(str.substr(startIndex, numLength))].set(columnIndex);
-   return;
+   intronInSampleQ.set(std::stoi(str.substr(startIndex, numLength)));
+   return intronInSampleQ;
 }
 
 int main() {
-   std::cerr << "Initializing data structures..." << std::endl;
-   std::vector<std::bitset<INTRON_COUNT> > introns(SAMPLE_COUNT);
-   int rowCount = SAMPLE_MAX / SAMPLE_INTERVAL
-   int columnCount = PROPORTION_MAX / PROPORTION_INTERVAL
-   std::vector<std::double<columnCount> > countMeans(rowCount);
-   std::vector<std::double<columnCount> > countStandardDeviations(rowCount);
-   std::cerr << "Done." << std::endl;
+   int rowCount = SAMPLE_MAX / SAMPLE_INTERVAL;
+   int columnCount = PROPORTION_MAX / PROPORTION_INTERVAL;
+   std::cerr << "Reservoir sampling to obtain random bitsets..." << std::endl;
+   std::default_random_engine gen(SEED);
+   std::vector<std::bitset<SAMPLE_COUNT> > randomSamples(rowCount * RANDOM_COUNT);
+   std::vector<int > randomSampleCounts(rowCount * RANDOM_COUNT);
+   int currentRandomSampleCount;
+   for (int i = 0; i < rowCount; i++) {
+      currentRandomSampleCount = (i + 1) * SAMPLE_INTERVAL;
+      for (int j = 0; j < RANDOM_COUNT; j++) {
+         randomSamples[i*RANDOM_COUNT+j] = randomSet(currentRandomSampleCount, gen);
+         randomSampleCounts[i*RANDOM_COUNT+j] = randomSamples[i*RANDOM_COUNT+j].count();
+      }
+   }
+   std::cerr << "Reading junctions and applying filters..." << std::endl;
+   typedef boost::multi_array<int, 3> array_type;
+   typedef array_type::index index;
+   array_type junctionCounts(boost::extents[randomSamples.size()][rowCount][columnCount]);
+   std::fill( junctionCounts.origin(), junctionCounts.origin() + junctionCounts.size(), 0 );
+   int randomSampleCount;
+   double proportion;
    std::string str;
-   int count = 0;
-   std::cerr << "Loading junctions..." << std::endl;
    while (getline(std::cin, str)) {
-      addIntron(str, count, introns);
-      count++;
+      std::bitset<SAMPLE_COUNT> intronInSampleQ = intronFromLine(str);
+      for (int k = 0; k < columnCount; k++) {
+         proportion = (k + 1) * PROPORTION_INTERVAL;
+         for (int j = 0; j < rowCount; j++) {
+            randomSampleCount = 0;
+            for (auto &i : randomSamples) {
+               if ((i & intronInSampleQ).count() >= proportion * SAMPLE_COUNT) {
+                  junctionCounts[randomSampleCount][j][k]++;
+                  randomSampleCount++;
+               }
+            }
+         }
+      }
+   }
+   std::cerr << "Dumping output..." << std::endl;
+   for (int j = 0; j < rowCount; j++) {
+      for (int k = 0; k < columnCount; k++) {
+         randomSampleCount = (j + 1) * SAMPLE_INTERVAL;
+         proportion = (k + 1) * PROPORTION_INTERVAL;
+         for (int i = 0; i < randomSampleCounts.size(); i++) {
+            std::cout << std::to_string(randomSampleCounts[i]) << '\t' << std::to_string(proportion) << '\t'
+               << std::to_string(junctionCounts[i][j][k]) << std::endl;
+         }
+      }
    }
    std::cerr << "Done." << std::endl;
-   std::cerr << "Counting junctions..." << std::endl;
-   std::default_random_engine generator(SEED);
-   std::uniform_int_distribution<int> distribution(0, SAMPLE_COUNT - 1);
    return 0;
 }
