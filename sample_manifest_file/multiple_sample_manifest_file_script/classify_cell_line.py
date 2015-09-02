@@ -10,6 +10,7 @@ for line in sys.stdin:
 	reference = 'FALSE'
 	small = 'FALSE'
 	differentiated = 'FALSE'
+	induced = 'FALSE'
 	if 'chipseq' in lower_line:
 		notrna = 'TRUE'
 	if 'mirna' in lower_line or 'srna' in lower_line \
@@ -32,8 +33,8 @@ for line in sys.stdin:
 	if '2014-03-06T16:48:' in line and ';subject id:' in line:
 		small = 'TRUE'
 	if single =='TRUE' or small == 'TRUE' or notrna == 'TRUE':
-		#print '\t'.join([notrna, single, small, reference,
-		#					differentiated, 'NA', 'NA', line]),
+		print '\t'.join([notrna, single, small, reference,
+							differentiated, induced, 'NA', 'NA', line.strip()]),
 		continue
 	cell_line = lower_line.strip().replace(
 						'line:', '\x1c'
@@ -205,6 +206,17 @@ for line in sys.stdin:
 			or 'airway basal' in line:
 			cell_line = 'FALSE'
 		else:
-			pass
-	if not cell_line:
-		print line,
+			if 'U937 monocytic' in line:
+				cell_line = 'U937'
+			elif 'H1-embryonic stem cells' in line:
+				cell_line = 'H1'
+			elif 'HEK293T' in line:
+				cell_line = 'HEK293T'
+			elif 'MCF7' in line:
+				cell_line = 'MCF7'
+			elif 'Hep3B' in line:
+				cell_line = 'HEP3B'
+	print '\t'.join([notrna, single, small, reference,
+							differentiated, induced, cell_line, 'NA', 'NA', line.strip()])
+#	if not cell_line:
+#		print line,

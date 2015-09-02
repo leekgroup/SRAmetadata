@@ -19,7 +19,7 @@ if __name__ == '__main__':
     single_cell = set(['single-cell', 'single cell'])
     fetal = set(['fetal', 'fetus'])
     stem_cell = set(['hesc', 'stem cell' 'stem-cell', 'ipsc', 'pluripotent'])
-    primary = set(['patient', 'subject', 'primary tissue'])
+    primary = set(['patient', 'subject', 'primary tissue', 'donor'])
     cancer = set(['tumor', 'cancer', 'oma\\b'])
     regexps = ['|'.join(cluster) for cluster
     			in [cell_line, small_rna, single_cell, fetal, stem_cell,
