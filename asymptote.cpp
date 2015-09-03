@@ -82,7 +82,7 @@ std::bitset<SAMPLE_COUNT> intronFromLine(const std::string &str) {
 
 int main() {
    int rowCount = SAMPLE_MAX / SAMPLE_INTERVAL;
-   int columnCount = PROPORTION_MAX / PROPORTION_INTERVAL;
+   int columnCount = PROPORTION_MAX / PROPORTION_INTERVAL + 1;
    std::cerr << "Reservoir sampling to obtain random bitsets..." << std::endl;
    std::default_random_engine gen(SEED);
    std::vector<std::bitset<SAMPLE_COUNT> > randomSamples(rowCount * RANDOM_COUNT);
@@ -107,7 +107,7 @@ int main() {
    while (getline(std::cin, str)) {
       std::bitset<SAMPLE_COUNT> intronInSampleQ = intronFromLine(str);
       for (int k = 0; k < columnCount; k++) {
-         proportion = (k + 1) * PROPORTION_INTERVAL;
+         proportion = k * PROPORTION_INTERVAL;
          for (int i = 0; i < randomSamples.size(); i++) {
             if ((randomSamples[i] & intronInSampleQ).count() >= proportion * randomSampleCounts[i]) {
                junctionCounts[i][k]++;
@@ -117,7 +117,7 @@ int main() {
    }
    std::cerr << "Dumping output..." << std::endl;
    for (int k = 0; k < columnCount; k++) {
-      proportion = (k + 1) * PROPORTION_INTERVAL;
+      proportion = k * PROPORTION_INTERVAL;
       for (int i = 0; i < randomSampleCounts.size(); i++) {
          std::cout << std::to_string(randomSampleCounts[i]) << '\t' << std::to_string(proportion) << '\t'
             << std::to_string(junctionCounts[i][k]) << std::endl;
