@@ -27,11 +27,11 @@
 
 const unsigned int INTRON_COUNT = 42882032; // Bake intron count in so bitsets can be preallocated
 const unsigned int SAMPLE_COUNT = 21506; // Total number of samples
-const unsigned int RANDOM_COUNT = 1; // Number of random samples S to take at each value of N
+const unsigned int RANDOM_COUNT = 10; // Number of random samples S to take at each value of N
 const unsigned int SAMPLE_INTERVAL = 1000; // Minimum value of N defined above as well as interval between successive values pf N studied
 const unsigned int SAMPLE_MAX = 20000; // Maximum value of N defined above as well as interval between successive values of N studied
-const double PROPORTION_INTERVAL = 0.005; // Minimum value of K defined above as well as interval between successive values of K studied
-const double PROPORTION_MAX = 0.03; // Maximum value of K studied
+const double PROPORTION_INTERVAL = 0.00025; // Minimum value of K defined above as well as interval between successive values of K studied
+const double PROPORTION_MAX = 0.001; // Maximum value of K studied
 const unsigned int SEED = 5; // Or whatever; we used 5 for reproducibility
 
 /* Sampling from range without replacement implementation inspired
@@ -88,45 +88,39 @@ int main() {
    std::vector<std::bitset<SAMPLE_COUNT> > randomSamples(rowCount * RANDOM_COUNT);
    std::vector<int > randomSampleCounts(rowCount * RANDOM_COUNT);
    int currentRandomSampleCount;
+   int k = 0;
    for (int i = 0; i < rowCount; i++) {
       currentRandomSampleCount = (i + 1) * SAMPLE_INTERVAL;
       for (int j = 0; j < RANDOM_COUNT; j++) {
-         randomSamples[i*RANDOM_COUNT+j] = randomSet(currentRandomSampleCount, gen);
-         randomSampleCounts[i*RANDOM_COUNT+j] = randomSamples[i*RANDOM_COUNT+j].count();
+         randomSamples[k] = randomSet(currentRandomSampleCount, gen);
+         randomSampleCounts[k] = randomSamples[k].count();
+         k += 1;
       }
    }
    std::cerr << "Reading junctions and applying filters..." << std::endl;
-   typedef boost::multi_array<int, 3> array_type;
+   typedef boost::multi_array<int, 2> array_type;
    typedef array_type::index index;
-   array_type junctionCounts(boost::extents[randomSamples.size()][rowCount][columnCount]);
+   array_type junctionCounts(boost::extents[randomSamples.size()][columnCount]);
    std::fill( junctionCounts.origin(), junctionCounts.origin() + junctionCounts.size(), 0 );
-   int randomSampleCount;
    double proportion;
    std::string str;
    while (getline(std::cin, str)) {
       std::bitset<SAMPLE_COUNT> intronInSampleQ = intronFromLine(str);
       for (int k = 0; k < columnCount; k++) {
          proportion = (k + 1) * PROPORTION_INTERVAL;
-         for (int j = 0; j < rowCount; j++) {
-            randomSampleCount = 0;
-            for (auto &i : randomSamples) {
-               if ((i & intronInSampleQ).count() >= proportion * SAMPLE_COUNT) {
-                  junctionCounts[randomSampleCount][j][k]++;
-                  randomSampleCount++;
-               }
+         for (int i = 0; i < randomSamples.size(); i++) {
+            if ((randomSamples[i] & intronInSampleQ).count() >= proportion * randomSampleCounts[i]) {
+               junctionCounts[i][k]++;
             }
          }
       }
    }
    std::cerr << "Dumping output..." << std::endl;
-   for (int j = 0; j < rowCount; j++) {
-      for (int k = 0; k < columnCount; k++) {
-         randomSampleCount = (j + 1) * SAMPLE_INTERVAL;
-         proportion = (k + 1) * PROPORTION_INTERVAL;
-         for (int i = 0; i < randomSampleCounts.size(); i++) {
-            std::cout << std::to_string(randomSampleCounts[i]) << '\t' << std::to_string(proportion) << '\t'
-               << std::to_string(junctionCounts[i][j][k]) << std::endl;
-         }
+   for (int k = 0; k < columnCount; k++) {
+      proportion = (k + 1) * PROPORTION_INTERVAL;
+      for (int i = 0; i < randomSampleCounts.size(); i++) {
+         std::cout << std::to_string(randomSampleCounts[i]) << '\t' << std::to_string(proportion) << '\t'
+            << std::to_string(junctionCounts[i][k]) << std::endl;
       }
    }
    std::cerr << "Done." << std::endl;
