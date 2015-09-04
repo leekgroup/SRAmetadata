@@ -1,9 +1,9 @@
-/* asymptote.cpp
+/* absolute_asymptote.cpp
    Abhi Nellore
    September 2, 2015
 
    Consider an exon-exon junction filter where a junction is kept if and only
-   if it is found in >= some proportion K of RNA-seq samples analyzed.
+   if it is found in >= some number K of RNA-seq samples analyzed.
    This program takes S random samples of N RNA-seq samples of input junction
    counts from a total of Q RNA-seq samples at various values of K and finds
    the number of junctions J that make it past the filter, writing a table
@@ -27,11 +27,11 @@
 
 const unsigned int INTRON_COUNT = 42882032; // Bake intron count in so bitsets can be preallocated
 const unsigned int SAMPLE_COUNT = 21506; // Total number of samples
-const unsigned int RANDOM_COUNT = 50; // Number of random samples S to take at each value of N
-const unsigned int SAMPLE_INTERVAL = 500; // Minimum value of N defined above as well as interval between successive values pf N studied
-const unsigned int SAMPLE_MAX = 21500; // Maximum value of N defined above as well as interval between successive values of N studied
-const double PROPORTION_INTERVAL = 0.005; // Minimum value of K defined above as well as interval between successive values of K studied
-const double PROPORTION_MAX = 0.07; // Maximum value of K studied
+const unsigned int RANDOM_COUNT = 5; // Number of random samples S to take at each value of N
+const unsigned int SAMPLE_INTERVAL = 100; // Minimum value of N defined above as well as interval between successive values pf N studied
+const unsigned int SAMPLE_MAX = 20000; // Maximum value of N defined above as well as interval between successive values of N studied
+const unsigned int COUNT_INTERVAL = 5; // Minimum value of K defined above as well as interval between successive values of K studied
+const unsigned int COUNT_MAX = 100; // Maximum value of K studied
 const unsigned int SEED = 5; // Or whatever; we used 5 for reproducibility
 
 /* Sampling from range without replacement implementation inspired
@@ -82,7 +82,7 @@ std::bitset<SAMPLE_COUNT> intronFromLine(const std::string &str) {
 
 int main() {
    int rowCount = SAMPLE_MAX / SAMPLE_INTERVAL;
-   int columnCount = PROPORTION_MAX / PROPORTION_INTERVAL + 1;
+   int columnCount = COUNT_MAX / COUNT_INTERVAL + 1;
    std::cerr << "Reservoir sampling to obtain random bitsets..." << std::endl;
    std::default_random_engine gen(SEED);
    std::vector<std::bitset<SAMPLE_COUNT> > randomSamples(rowCount * RANDOM_COUNT);
@@ -102,16 +102,16 @@ int main() {
    typedef array_type::index index;
    array_type junctionCounts(boost::extents[randomSamples.size()][columnCount]);
    std::fill( junctionCounts.origin(), junctionCounts.origin() + junctionCounts.size(), 0 );
-   double proportion;
    int numSamplesWithJunction;
    std::string str;
+   int count;
    while (getline(std::cin, str)) {
       std::bitset<SAMPLE_COUNT> intronInSampleQ = intronFromLine(str);
       for (int k = 0; k < columnCount; k++) {
-         proportion = k * PROPORTION_INTERVAL;
+         count = k * COUNT_INTERVAL;
          for (int i = 0; i < randomSamples.size(); i++) {
             numSamplesWithJunction = (randomSamples[i] & intronInSampleQ).count();
-            if (numSamplesWithJunction >= proportion * randomSampleCounts[i] && numSamplesWithJunction > 0) {
+            if (numSamplesWithJunction >= count && numSamplesWithJunction > 0) {
                junctionCounts[i][k]++;
             }
          }
@@ -119,10 +119,10 @@ int main() {
    }
    std::cerr << "Dumping output..." << std::endl;
    for (int k = 0; k < columnCount; k++) {
-      proportion = k * PROPORTION_INTERVAL;
+      count = k * COUNT_INTERVAL;
       for (int i = 0; i < randomSampleCounts.size(); i++) {
-         std::cout << std::to_string(randomSampleCounts[i]) << '\t' << std::to_string(proportion) << '\t'
-            << std::to_string(junctionCounts[i][k]) << std::endl;
+         std::cout << randomSampleCounts[i] << '\t' << count << '\t'
+            << junctionCounts[i][k] << std::endl;
       }
    }
    std::cerr << "Done." << std::endl;
