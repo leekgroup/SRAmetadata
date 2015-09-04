@@ -65,11 +65,13 @@ if __name__ == '__main__':
         tokens = line.strip().split('\t')
         samples = tokens[-2].strip().split(',')
         sample_count = len(samples)
-        for sample in samples:
+        projects_to_increment = set([index_to_project[sample]
+                                        for sample in samples])
+        for project in projects_to_increment:
             try:
-                projects[index_to_project[sample]][sample_count] += 1
+                projects[project][sample_count] += 1
             except KeyError:
-                projects[index_to_project[sample]][sample_count] = 1
+                projects[project][sample_count] = 1
 
     # Dump results; first comes the header line
     thresholds = [args.threshold_interval * i + args.min_threshold
