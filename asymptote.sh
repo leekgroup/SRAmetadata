@@ -9,6 +9,7 @@ DUMPDIR=$2
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 cd $DIR
 g++ asymptote.cpp -o $DUMPDIR/asymptote
+mkdir -p $DUMPDIR
 cd $DUMPDIR
 gzip -cd $ALLSRAINTRONS | split -b 428821 - srasplit
 # Now execute $DUMPDIR/asymptote on each srasplit file
