@@ -19,7 +19,12 @@ line:
 7. comma-separated list of sample indexes in which junction was found
 8. comma-separated list of numbers of reads in each corresponding sample from
     field 7
+
+We executed:
+gzip -cd all_SRA_introns.tsv.gz | pypy heatmap.py \
+    -s index_to_SRA_accession.tsv >table_for_heatmap.tsv
 """
+import sys
 from collections import defaultdict
 
 if __name__ == '__main__':
@@ -53,9 +58,9 @@ if __name__ == '__main__':
     with open(args.sra) as sra_stream:
         for line in sra_stream:
             tokens = line.strip().split('\t')
-            index_to_project[tokens[1]] = tokens[2]
+            index_to_project[tokens[0]] = tokens[1]
 
-    projects = defaultdict(defaultdict(int))
+    projects = defaultdict(dict)
     for line in sys.stdin:
         tokens = line.strip().split('\t')
         samples = tokens[-2].strip().split(',')
@@ -67,17 +72,16 @@ if __name__ == '__main__':
                 projects[index_to_project[sample]][sample_count] = 1
 
     # Dump results; first comes the header line
-    print ('\t'.join([''] + ['%.5f' % xrange(args.min_threshold,
-                                args.max_threshold + args.threshold_interval,
-                                args.threshold_interval)])):
+    thresholds = [args.threshold_interval * i + args.min_threshold
+        for i in xrange(int((args.max_threshold - args.min_threshold)
+                                / args.threshold_interval) + 1)]
     sample_thresholds = [round(float(args.sample_count) * threshold)
-                            for threshold in xrange(args.min_threshold,
-                                args.max_threshold + args.threshold_interval,
-                                args.threshold_interval)]
+                            for threshold in thresholds]
+    print ('\t'.join([''] + ['%.5f' % threshold for threshold in thresholds]))
     for project in projects:
         print '\t'.join([project]
-                        + [sum(intron_count
+                        + [str(sum(intron_count
                                 for sample_count, intron_count
                                 in projects[project].items()
-                                if sample_count >= threshold)
+                                if sample_count >= threshold))
                             for threshold in sample_thresholds])
