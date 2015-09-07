@@ -15,7 +15,8 @@
    Note that some constants dependent on this input data are baked into the
    code below.
 
-   Requires Boost.
+   Requires Boost. Random seed is first and only command-line parameter.
+   We used seeds on [0, 49]
    */
 
 #include<iostream>
@@ -27,12 +28,11 @@
 
 const unsigned int INTRON_COUNT = 42882032; // Bake intron count in so bitsets can be preallocated
 const unsigned int SAMPLE_COUNT = 21506; // Total number of samples
-const unsigned int RANDOM_COUNT = 50; // Number of random samples S to take at each value of N
+const unsigned int RANDOM_COUNT = 1; // Number of random samples S to take at each value of N
 const unsigned int SAMPLE_INTERVAL = 500; // Minimum value of N defined above as well as interval between successive values pf N studied
 const unsigned int SAMPLE_MAX = 21500; // Maximum value of N defined above as well as interval between successive values of N studied
-const double PROPORTION_INTERVAL = 0.005; // Minimum value of K defined above as well as interval between successive values of K studied
-const double PROPORTION_MAX = 0.07; // Maximum value of K studied
-const unsigned int SEED = 5; // Or whatever; we used 5 for reproducibility
+const double PROPORTION_INTERVAL = 0.025; // Minimum value of K defined above as well as interval between successive values of K studied
+const double PROPORTION_MAX = 0.075; // Maximum value of K studied
 
 /* Sampling from range without replacement implementation inspired
 by http://stackoverflow.com/questions/28287138/c-randomly-sample-k-numbers-from-range-0n-1-n-k-without-replacement */
@@ -80,7 +80,8 @@ std::bitset<SAMPLE_COUNT> intronFromLine(const std::string &str) {
    return intronInSampleQ;
 }
 
-int main() {
+int main(int argc, char **argv) {
+   const unsigned int SEED = atoi(argv[1]);
    int rowCount = SAMPLE_MAX / SAMPLE_INTERVAL;
    int columnCount = PROPORTION_MAX / PROPORTION_INTERVAL + 1;
    std::cerr << "Reservoir sampling to obtain random bitsets..." << std::endl;
