@@ -86,7 +86,7 @@ if __name__ == '__main__':
         )
     (project_junctions_ann, project_reads_ann, sample_junctions_ann,
         sample_reads_ann, project_junctions, project_reads,
-        sample_junctions, sample_reads) = [defaultdict(int) for _ in xrange(8))
+        sample_junctions, sample_reads) = [defaultdict(int) for _ in xrange(8)]
     for line in sys.stdin:
         tokens = line.strip().split('\t')
         junction = tuple(tokens[:3])
