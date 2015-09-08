@@ -42,6 +42,7 @@ gzip -cd all_SRA_introns.tsv.gz | pypy rank.py \
 import sys
 from collections import defaultdict
 import os
+import subprocess
 
 if __name__ == '__main__':
     import argparse
