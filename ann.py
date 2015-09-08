@@ -104,7 +104,7 @@ if __name__ == '__main__':
         project_increments = defaultdict(int)
         for i, sample_index in enumerate(samples):
             sample = index_to_sample[sample_index]
-            project_increments[index_to_project[sample]] \
+            project_increments[index_to_project[sample_index]] \
                 += sample_increments[i]
             sample_junctions[sample] += 1
             sample_reads[sample] += sample_increments[i]
