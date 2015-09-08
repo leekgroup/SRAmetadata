@@ -86,7 +86,7 @@ if __name__ == '__main__':
         )
     (project_junctions_ann, project_reads_ann, sample_junctions_ann,
         sample_reads_ann, project_junctions, project_reads,
-        sample_junctions, sample_reads) = [defaultdict(int) for _ in xrange(6))
+        sample_junctions, sample_reads) = [defaultdict(int) for _ in xrange(8))
     for line in sys.stdin:
         tokens = line.strip().split('\t')
         junction = tuple(tokens[:3])
@@ -98,9 +98,9 @@ if __name__ == '__main__':
         sample_increments = [int(increment) for increment
                                 in tokens[-1].strip().split(',')]
         project_increments = defaultdict(int)
-        for i, sample in enumerate(samples):
-            project_increments[index_to_project[sample]] \
-                += sample_increments[i]
+        for i, sample_index in enumerate(samples):
+            sample = index_to_sample[sample_index]
+            project_increments[sample] += sample_increments[i]
             sample_junctions[sample] += 1
             sample_reads[sample] += sample_increments[i]
             if annotated:
