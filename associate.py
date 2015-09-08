@@ -32,6 +32,6 @@ for line in sys.stdin:
                     'proportion of reads overlapping annotated junctions']) \
                 + header_line
         printed_header_line = True
-        print line.strip() + '\t' + sample_to_line[acc_to_sample[tokens[1]]]a
+        print line.strip() + '\t' + sample_to_line[acc_to_sample[tokens[1]]]
     else:
         print line.strip() + '\t' + sample_to_line[acc_to_sample[tokens[1]]]
