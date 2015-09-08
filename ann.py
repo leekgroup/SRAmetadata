@@ -79,6 +79,8 @@ if __name__ == '__main__':
                                             stdout=subprocess.PIPE)
     for line in extract_process.stdout:
         tokens = line.strip().split('\t')
+        tokens[1] = str(int(tokens[1]) - 1)
+        tokens[2] = str(int(tokens[2]))
         annotated_junctions.add(tuple(tokens[:-1]))
     extract_process.stdout.close()
     exit_code = extract_process.wait()
@@ -124,16 +126,16 @@ if __name__ == '__main__':
                             str(sample_junctions_ann[sample]),
                             str(sample_reads[sample]),
                             str(sample_reads_ann[sample]),
-                            '%.5f' % (float(sample_junctions_ann[sample]
+                            '%.10f' % (float(sample_junctions_ann[sample]
                                         / sample_junctions[sample])),
-                            '%.5f' % (float(sample_reads_ann[sample])
+                            '%.10f' % (float(sample_reads_ann[sample])
                                         / sample_reads[sample])])
     for project in project_junctions:
         print '\t'.join(['project', project, str(project_junctions[project]),
                             str(project_junctions_ann[project]),
                             str(project_reads[project]),
                             str(project_reads_ann[project]),
-                            '%.5f' % (float(project_junctions_ann[project]
+                            '%.10f' % (float(project_junctions_ann[project]
                                         / project_junctions[project])),
-                            '%.5f' % (float(project_reads_ann[project])
+                            '%.10f' % (float(project_reads_ann[project])
                                         / project_reads[project])])
