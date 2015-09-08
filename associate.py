@@ -18,7 +18,7 @@ for line in sys.stdin:
     if len(tokens) == 5 and tokens[1][1:3] == 'RP' and tokens[2][1:3] == 'RS':
         acc_to_sample[tokens[1]] = tokens[2]
         acc_to_sample[tokens[4]] = tokens[2]
-    elif 'cell line' in line and 'small rna' in line and 'submission update' \
+    elif 'cell line' in line and 'small rna' in line and 'submission date' \
         in line and 'attributes' in line and not captured_header_line:
         header_line = line.strip()
         captured_header_line = True
