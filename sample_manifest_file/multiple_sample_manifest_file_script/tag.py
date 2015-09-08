@@ -21,12 +21,15 @@ if __name__ == '__main__':
     stem_cell = set(['hesc', 'stem cell' 'stem-cell', 'ipsc', 'pluripotent'])
     primary = set(['patient', 'subject', 'primary tissue', 'donor'])
     cancer = set(['tumor', 'cancer', 'oma\\b'])
+    polyA = set(['polya', 'poly-a'])
+    totalrna = set(['total rna', 'ribozero', 'ribo-zero', 'ribominus', 'ribo-minus'])
     regexps = ['|'.join(cluster) for cluster
     			in [cell_line, small_rna, single_cell, fetal, stem_cell,
-                    primary, cancer]]
+                    primary, cancer, polyA, totalrna]]
     original_header = sys.stdin.readline().strip().split('\t')
     header = ['cell line', 'small rna', 'single cell', 'fetal',
-                'stem cell', 'primary', 'cancer'] + original_header
+                'stem cell', 'primary', 'cancer', 'total RNA', 'polyA'
+                ] + original_header
     print '\t'.join(header)
     for line in sys.stdin:
     	lower_line = line.lower()
@@ -35,4 +38,4 @@ if __name__ == '__main__':
         		sys.stdout.write('1\t')
         	else:
         		sys.stdout.write('0\t')
-        sys.stdout.write(lower_line)
+        sys.stdout.write(line)
