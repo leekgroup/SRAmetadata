@@ -17,7 +17,7 @@ for line in sys.stdin:
     tokens = line.strip().split('\t')
     if len(tokens) == 5 and tokens[1][1:3] == 'RP' and tokens[2][1:3] == 'RS':
         acc_to_sample[tokens[1]] = tokens[2]
-        acc_to_smaple[tokens[4]] = tokens[2]
+        acc_to_sample[tokens[4]] = tokens[2]
     elif 'cell line' in line and 'small rna' in line and 'submission update' \
         in line and 'attributes' in line and not captured_header_line:
         header_line = line.strip()
@@ -32,6 +32,6 @@ for line in sys.stdin:
                     'proportion of reads overlapping annotated junctions']) \
                 + header_line
         printed_header_line = True
-        print line.strip() + '\t' + sample_to_line[acc_to_sample[tokens[1]]]
+        print line.strip() + '\t' + sample_to_line[acc_to_sample[tokens[1]]]a
     else:
         print line.strip() + '\t' + sample_to_line[acc_to_sample[tokens[1]]]
