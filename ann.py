@@ -73,7 +73,9 @@ if __name__ == '__main__':
             index_to_sample[tokens[0]] = tokens[4]
 
     annotated_junctions = set()
-    extract_process = subprocess.Popen([sys.executable, args.annotation],
+    extract_process = subprocess.Popen([sys.executable,
+                                            args.extract_splice_sites_path,
+                                            args.annotation],
                                             stdout=subprocess.PIPE)
     for line in extract_process.stdout:
         tokens = line.strip().split('\t')
