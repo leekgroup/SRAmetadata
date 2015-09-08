@@ -79,9 +79,10 @@ if __name__ == '__main__':
                                             stdout=subprocess.PIPE)
     for line in extract_process.stdout:
         tokens = line.strip().split('\t')
-        tokens[1] = str(int(tokens[1]) - 1)
+        tokens[1] = str(int(tokens[1]) + 2)
         tokens[2] = str(int(tokens[2]))
         annotated_junctions.add(tuple(tokens[:-1]))
+        print >>sys.stderr, '\t'.join(['annjunc'] + tokens[:-1])
     extract_process.stdout.close()
     exit_code = extract_process.wait()
     if exit_code != 0:
@@ -96,6 +97,7 @@ if __name__ == '__main__':
     for line in sys.stdin:
         tokens = line.strip().split('\t')
         junction = tuple(tokens[:3])
+        print >>sys.stderr, '\t'.join(['srajunc'] + list(junction))
         if junction in annotated_junctions:
             annotated = True
         else:
@@ -126,8 +128,8 @@ if __name__ == '__main__':
                             str(sample_junctions_ann[sample]),
                             str(sample_reads[sample]),
                             str(sample_reads_ann[sample]),
-                            '%.10f' % (float(sample_junctions_ann[sample]
-                                        / sample_junctions[sample])),
+                            '%.10f' % (float(sample_junctions_ann[sample])
+                                        / sample_junctions[sample]),
                             '%.10f' % (float(sample_reads_ann[sample])
                                         / sample_reads[sample])])
     for project in project_junctions:
@@ -135,7 +137,7 @@ if __name__ == '__main__':
                             str(project_junctions_ann[project]),
                             str(project_reads[project]),
                             str(project_reads_ann[project]),
-                            '%.10f' % (float(project_junctions_ann[project]
-                                        / project_junctions[project])),
+                            '%.10f' % (float(project_junctions_ann[project])
+                                        / project_junctions[project]),
                             '%.10f' % (float(project_reads_ann[project])
                                         / project_reads[project])])
