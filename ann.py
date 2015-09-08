@@ -37,7 +37,7 @@ are across a project or from a given sample
 We executed:
 gzip -cd all_SRA_introns.tsv.gz | pypy rank.py \
     -s index_to_SRA_accession.tsv --annotation [GTF file]
-    >[GTF file]
+    >[output file]
 """
 import sys
 from collections import defaultdict
@@ -118,7 +118,7 @@ if __name__ == '__main__':
             project_reads[project] += project_increments[project]
             if annotated:
                 project_junctions_ann[project] += 1
-                project_reads_ann[project] += 1
+                project_reads_ann[project] += project_increments[project]
 
     # Dump results
     for sample in sample_junctions:
