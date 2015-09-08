@@ -82,7 +82,6 @@ if __name__ == '__main__':
         tokens[1] = str(int(tokens[1]) + 2)
         tokens[2] = str(int(tokens[2]))
         annotated_junctions.add(tuple(tokens[:-1]))
-        print >>sys.stderr, '\t'.join(['annjunc'] + tokens[:-1])
     extract_process.stdout.close()
     exit_code = extract_process.wait()
     if exit_code != 0:
@@ -97,7 +96,6 @@ if __name__ == '__main__':
     for line in sys.stdin:
         tokens = line.strip().split('\t')
         junction = tuple(tokens[:3])
-        print >>sys.stderr, '\t'.join(['srajunc'] + list(junction))
         if junction in annotated_junctions:
             annotated = True
         else:
