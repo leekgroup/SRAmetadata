@@ -57,8 +57,8 @@ if __name__ == '__main__':
         )
     parser.add_argument('--extract-splice-sites-path', type=str,
         default=os.path.join(os.path.dirname(__file__),
-                                'extract_splice_sites.py')),
-        help=('path to extract_splice_sites.py from HISAT v0.1.6-beta.')
+                                'extract_splice_sites.py'),
+        help=('path to extract_splice_sites.py from HISAT v0.1.6-beta.'))
     parser.add_argument('--annotation', type=str, required=True,
         help='path to GTF file encoding known junctions')
     args = parser.parse_args()
