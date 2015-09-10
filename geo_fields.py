@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-
 relevant_fields = ['cell type', 'tissue', 'cell line', 'barcode',
 	'flowcell', 'lane', 'library id', 'platform', 'seqc sample', 'site',
 	'treatment', 'patient id', 'gender', 'age', 'subtype', 'disease state']
@@ -9,7 +8,7 @@ all_fields = {}
 for line in sys.stdin:
 	if '!Sample_characteristics_ch1' in line:
 		content = line.partition(':')[1].strip()
-		field = tokens[0].rpartition('=')[1].strip()
+		field = line.rpartition('=')[1].strip()
 		all_fields[field] = content
 
 to_print = []
