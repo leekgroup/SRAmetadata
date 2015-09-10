@@ -7,8 +7,8 @@ relevant_fields = ['cell type', 'tissue', 'cell line', 'barcode',
 all_fields = {}
 for line in sys.stdin:
 	if '!Sample_characteristics_ch1' in line:
-		content = line.partition(':')[1].strip()
-		field = line.rpartition('=')[1].strip()
+		rest, _ content = line.partition(':')[1].strip()
+		field = rest.rpartition('=')[1].strip()
 		all_fields[field] = content
 
 to_print = []
