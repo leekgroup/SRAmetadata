@@ -10,7 +10,7 @@ for line in sys.stdin:
 		rest, _, content = line.partition(':')
 		content = content.strip()
 		rest = rest.strip()
-		field = rest.rpartition('=')[1].strip()
+		field = rest.rpartition('=')[2].strip()
 		all_fields[field] = content
 
 to_print = []
