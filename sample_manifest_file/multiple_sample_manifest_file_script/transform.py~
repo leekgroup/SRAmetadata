@@ -1,0 +1,15 @@
+srs_to_line = {}
+with open('parsed_biosample_data.tsv') as parsed_stream:
+    top = parsed_stream.readline()
+    for line in parsed_stream:
+        srs_to_line[line.strip().split('\t')[0]] = line
+
+srr_to_srs = {}
+with open('index_to_SRA_accession.tsv') as index_stream:
+    for line in index_stream:
+        line = line.strip().split('\t')
+        srr_to_srs[line[-1]] = line[2]
+
+print '\t'.join([srr, top]),
+for srr in srr_to_srs:
+    print '\t'.join([srr, srs_to_line[srr_to_srs[srr]]]),
