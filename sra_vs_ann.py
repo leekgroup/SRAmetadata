@@ -84,6 +84,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     annotated_junctions = set()
+    refs = ['chr' + str(i) for i in xrange(1, 23)] + ['chrM', 'chrX', 'chrY']
     for annotation in args.annotations:
         extract_process = subprocess.Popen([sys.executable,
                                                 args.extract_splice_sites_path,
@@ -93,7 +94,8 @@ if __name__ == '__main__':
             tokens = line.strip().split('\t')
             tokens[1] = str(int(tokens[1]) + 2)
             tokens[2] = str(int(tokens[2]))
-            annotated_junctions.add(tuple((tokens[0], tokens[1], tokens[2])))
+            if tokens[0] in refs:
+                annotated_junctions.add(tuple(tokens[:-1]))
         extract_process.stdout.close()
         exit_code = extract_process.wait()
         if exit_code != 0:
