@@ -20,9 +20,9 @@ last field: comma-separated list of read coverages corresponding to sample
 Output:
     [basename].coverage.tsv, with the following tab-separated fields:
     1. sample index
-    2. number of reads in sample covering annotated junctions
-    3. number of reads in sample covering unannotated junctions
-    4. total number of reads (sum of fields 2 and 3)
+    2. number of annotated junction overlaps in sample
+    3. number of unannotated junction overlaps in sample
+    4. total number of junction overlaps (sum of fields 2 and 3)
     5. number of annotated junctions found in sample
     6. number of unannotated junctions found in sample
     7. total number of junctions (sum of fields 5 and 6)
