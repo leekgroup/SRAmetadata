@@ -32,6 +32,7 @@ Output:
     2. number of annotated junctions found in >= (field 1) samples
     3. number of unannotated junctions found in >= (field 1) samples
     4. total number of junctions found in >= (field 1) samples
+    5. total number of junctions in annotation (same for all lines)
 
 We used the annotations:
     gencode.v19.annotation.gtf.gz
@@ -145,12 +146,14 @@ if __name__ == '__main__':
     max_coverage = max(annotated_coverage.keys()
                         + unannotated_coverage.keys())
     annotated_junction_total, unannotated_junction_total = 0, 0
+    total_annotated_junctions = len(annotated_junctions)
     with open(args.basename + '.ann.tsv', 'w') as ann_stream:
         for coverage in xrange(max_coverage, 0, -1):
             annotated_junction_total += annotated_coverage[coverage]
             unannotated_junction_total += unannotated_coverage[coverage]
-            print >>ann_stream, '%d\t%d\t%d\t%d' % (
+            print >>ann_stream, '%d\t%d\t%d\t%d\t%d' % (
                     coverage, annotated_junction_total,
                     unannotated_junction_total,
-                    annotated_junction_total + unannotated_junction_total
+                    annotated_junction_total + unannotated_junction_total,
+                    total_annotated_junctions
                 )
