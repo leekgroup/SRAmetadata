@@ -51,13 +51,13 @@ We used the annotations:
 
 We first unzipped all gtf.gz files above and then executed:
     1) gzip -cd all_SRA_introns.tsv.gz | pypy sra_vs_ann.py
-        --annotation gencode.v19.annotation.gtf --basename gencode_v19
+        --annotations gencode.v19.annotation.gtf --basename gencode_v19
     2) gzip -cd all_SRA_introns.tsv.gz | pypy sra_vs_ann.py
-        --annotation Homo_sapiens.GRCh37.75.gtf --basename ensembl_v75
+        --annotations Homo_sapiens.GRCh37.75.gtf --basename ensembl_v75
     3) gzip -cd all_SRA_introns.tsv.gz | pypy sra_vs_ann.py
-        --annotation refGene.gtf --basename refseq
+        --annotations refGene.gtf --basename refseq
     4) gzip -cd all_SRA_introns.tsv.gz | pypy sra_vs_ann.py
-        --annotation refGene.gtf gencode.v19.annotation.gtf
+        --annotations refGene.gtf gencode.v19.annotation.gtf
         Homo_sapiens.GRCh37.75.gtf --basename union
 """
 import sys
