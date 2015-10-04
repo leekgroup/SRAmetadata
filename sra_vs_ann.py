@@ -94,7 +94,7 @@ if __name__ == '__main__':
             tokens = line.strip().split('\t')
             tokens[1] = str(int(tokens[1]) + 2)
             tokens[2] = str(int(tokens[2]))
-            if tokens[0].startswith('chr'):
+            if not tokens[0].startswith('chr'):
                 tokens[0] = 'chr' + tokens[0]
             if tokens[0] in refs:
                 annotated_junctions.add(tuple(tokens[:-1]))
