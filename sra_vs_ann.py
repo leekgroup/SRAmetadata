@@ -93,7 +93,7 @@ if __name__ == '__main__':
             tokens = line.strip().split('\t')
             tokens[1] = str(int(tokens[1]) + 2)
             tokens[2] = str(int(tokens[2]))
-            annotated_junctions.add(tuple(tokens[0], tokens[1], tokens[2]))
+            annotated_junctions.add(tuple((tokens[0], tokens[1], tokens[2])))
         extract_process.stdout.close()
         exit_code = extract_process.wait()
         if exit_code != 0:
