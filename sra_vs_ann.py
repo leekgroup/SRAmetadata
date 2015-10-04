@@ -5,8 +5,7 @@ sra_vs_ann.py
 Generates TSVs for plotting SRA vs annotation.
 
 Reads introns from stdin (all_SRA_introns.tsv.gz), 
-annotation files from command-line parameters and annotation from
-GTF file(s) specified as argument(s) of --annotations; writes to stdout.
+annotation file(s) from GTF file(s) specified as argument(s) of --annotations
 all_SRA_introns.tsv.gz should have AT LEAST the following tab-separated fields
 on each line:
 1. chromosome
@@ -17,7 +16,7 @@ next-to-last field: comma-separated list of sample indexes
 last field: comma-separated list of read coverages corresponding to sample
     indexes
 
-Output:
+Outputs:
     [basename].coverage.tsv, with the following tab-separated fields:
     1. sample index
     2. number of annotated junction overlaps in sample
