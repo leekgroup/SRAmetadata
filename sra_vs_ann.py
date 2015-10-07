@@ -96,8 +96,8 @@ if __name__ == '__main__':
                                                 stdout=subprocess.PIPE)
         for line in extract_process.stdout:
             tokens = line.strip().split('\t')
-            tokens[1] = str(int(tokens[1]) + 2)
-            tokens[2] = str(int(tokens[2]))
+            tokens[1] = int(tokens[1]) + 2
+            tokens[2] = int(tokens[2])
             if not tokens[0].startswith('chr'):
                 tokens[0] = 'chr' + tokens[0]
             if tokens[0] in refs:
@@ -121,10 +121,11 @@ if __name__ == '__main__':
         tokens = line.strip().split('\t')
         if tokens[0].endswith('-') or tokens[0].endswith('+'):
             tokens[0] = tokens[0][:-1]
+        tokens[1] = int(tokens[1])
         if args.minus_one:
-            tokens[1] = str(int(tokens[1]) - 1)
+            tokens[2] = int(tokens[2]) - 1
         else:
-            tokens[1] = str(int(tokens[1]))
+            tokens[2] = int(tokens[2])
         coverages = [int(el) for el in tokens[-1].split(',')]
         sample_count = len(coverages)
         if tuple(tokens[:3]) in annotated_junctions:
