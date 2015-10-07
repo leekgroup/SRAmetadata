@@ -80,6 +80,10 @@ if __name__ == '__main__':
     parser.add_argument('--basename', type=str, required=True,
             help='basename for output files'
         )
+    parser.add_argument('--minus-one', type=str, required=True,
+            help='subtracts 1 from end coordinates of junctions input to '
+                 'stdin'
+        )
     args = parser.parse_args()
 
     annotated_junctions = set()
@@ -116,6 +120,11 @@ if __name__ == '__main__':
     sample_junction_unannotated = defaultdict(int)
     for line in sys.stdin:
         tokens = line.strip().split('\t')
+        tokens[0] = str(int(tokens[0]))
+        if args.minus_one:
+            tokens[1] = str(int(tokens[1]) - 1)
+        else:
+            tokens[1] = str(int(tokens[1]))
         coverages = [int(el) for el in tokens[-1].split(',')]
         sample_count = len(coverages)
         if tuple(tokens[:3]) in annotated_junctions:
