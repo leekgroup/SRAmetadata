@@ -95,6 +95,8 @@ if __name__ == '__main__':
             tokens[2] = str(int(tokens[2]))
             if not tokens[0].startswith('chr'):
                 tokens[0] = 'chr' + tokens[0]
+            if tokens[0].endswith('-') or tokens[0].endswith('+'):
+                tokens[0] = tokens[0][:-1]
             if tokens[0] in refs:
                 annotated_junctions.add(tuple(tokens[:-1]))
         extract_process.stdout.close()
