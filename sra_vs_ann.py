@@ -80,7 +80,8 @@ if __name__ == '__main__':
     parser.add_argument('--basename', type=str, required=True,
             help='basename for output files'
         )
-    parser.add_argument('--minus-one', type=str, required=True,
+    parser.add_argument('--minus-one', action='store_const', const=True,
+            default=False,
             help='subtracts 1 from end coordinates of junctions input to '
                  'stdin'
         )
