@@ -33,6 +33,7 @@ are across a project or from a given sample
 7. proportion of junctions from project or sample overlapping annotated
     junctions
 8. proportion of reads from project or sample overlapping annotated junctions
+9- SHARQ metadata, if available for SRR number
 
 We executed:
 gzip -cd all_SRA_introns.tsv.gz | pypy rank.py \
@@ -61,35 +62,53 @@ if __name__ == '__main__':
         default=os.path.join(os.path.dirname(__file__),
                                 'extract_splice_sites.py'),
         help=('path to extract_splice_sites.py from HISAT v0.1.6-beta.'))
-    parser.add_argument('--annotation', type=str, required=True,
-        help='path to GTF file encoding known junctions')
+    parser.add_argument('--annotations', type=str, required=True, nargs='+',
+        help='paths to GTF files encoding known junctions')
+    parser.add_argument('--sharq', type=str, required=False,
+        default=None,
+        help='path to SHARQ metadata if available; '
+             'we used sra-all-fields-2015-9-17.txt')
     args = parser.parse_args()
 
-    index_to_project, index_to_sample = {}, {}
+    index_to_project, index_to_sample, sample_to_metadata = {}, {}, {}
     with open(args.sra) as sra_stream:
         for line in sra_stream:
             tokens = line.strip().split('\t')
             index_to_project[tokens[0]] = tokens[1]
             index_to_sample[tokens[0]] = tokens[4]
 
+    if args.sharq is not None:
+        with open(args.sharq) as sharq_stream:
+            header = sharq_stream.readline().partition(',')[2].replace(
+                        ',', '\t'
+                    )
+            for line in sharq_stream:
+                partitioned = line.partition(',')
+                sample_to_metadata[partitioned[0]] = partitioned[2].replace(
+                        ',', '\t'
+                    )
+
     annotated_junctions = set()
-    extract_process = subprocess.Popen([sys.executable,
+
+    for annotation in args.annotations:
+        extract_process = subprocess.Popen([sys.executable,
                                             args.extract_splice_sites_path,
-                                            args.annotation],
+                                            annotation],
                                             stdout=subprocess.PIPE)
-    for line in extract_process.stdout:
-        tokens = line.strip().split('\t')
-        tokens[1] = str(int(tokens[1]) + 2)
-        tokens[2] = str(int(tokens[2]))
-        annotated_junctions.add(tuple(tokens[:-1]))
-    extract_process.stdout.close()
-    exit_code = extract_process.wait()
-    if exit_code != 0:
-        raise RuntimeError(
-            'extract_splice_sites.py had nonzero exit code {}.'.format(
+        for line in extract_process.stdout:
+            tokens = line.strip().split('\t')
+            tokens[1] = str(int(tokens[1]) + 2)
+            tokens[2] = str(int(tokens[2]))
+            annotated_junctions.add(tuple(tokens[:-1]))
+        extract_process.stdout.close()
+        exit_code = extract_process.wait()
+        if exit_code != 0:
+            raise RuntimeError(
+                'extract_splice_sites.py had nonzero exit code {}.'.format(
                                                                     exit_code
                                                                 )
-        )
+            )
+
     (project_junctions_ann, project_reads_ann, sample_junctions_ann,
         sample_reads_ann, project_junctions, project_reads,
         sample_junctions, sample_reads) = [defaultdict(int) for _ in xrange(8)]
@@ -121,17 +140,26 @@ if __name__ == '__main__':
                 project_reads_ann[project] += project_increments[project]
 
     # Dump results
-    for sample in sample_junctions:
-        print '\t'.join(['sample', sample, str(sample_junctions[sample]),
-                            str(sample_junctions_ann[sample]),
-                            str(sample_reads[sample]),
-                            str(sample_reads_ann[sample]),
-                            '%.10f' % (float(sample_junctions_ann[sample])
-                                        / sample_junctions[sample]),
-                            '%.10f' % (float(sample_reads_ann[sample])
-                                        / sample_reads[sample])])
-    for project in project_junctions:
-        print '\t'.join(['project', project, str(project_junctions[project]),
+    if args.sharq is None:
+        print '\t'.join(['type', 'accession', 'junctions',
+                            'annotated junctions', 'overlap instances',
+                            'annotated overlap instances',
+                            'proportion of junctions '
+                            'that are annotated',
+                            'proportion of overlap instances '
+                            'that are annotated'])
+        for sample in sample_junctions:
+            print '\t'.join(['sample', sample, str(sample_junctions[sample]),
+                                str(sample_junctions_ann[sample]),
+                                str(sample_reads[sample]),
+                                str(sample_reads_ann[sample]),
+                                '%.10f' % (float(sample_junctions_ann[sample])
+                                            / sample_junctions[sample]),
+                                '%.10f' % (float(sample_reads_ann[sample])
+                                            / sample_reads[sample])])
+        for project in project_junctions:
+            print '\t'.join(['project', project,
+                            str(project_junctions[project]),
                             str(project_junctions_ann[project]),
                             str(project_reads[project]),
                             str(project_reads_ann[project]),
@@ -139,3 +167,33 @@ if __name__ == '__main__':
                                         / project_junctions[project]),
                             '%.10f' % (float(project_reads_ann[project])
                                         / project_reads[project])])
+    else:
+         print '\t'.join(['type', 'accession', 'junctions',
+                            'annotated junctions', 'overlap instances',
+                            'annotated overlap instances',
+                            'proportion of junctions '
+                            'that are annotated',
+                            'proportion of overlap instances '
+                            'that are annotated', header])
+        na_line = '\t'.join(['NA']*(header.count('\t')+1))
+        for sample in sample_junctions:
+            print '\t'.join(['sample', sample, str(sample_junctions[sample]),
+                                str(sample_junctions_ann[sample]),
+                                str(sample_reads[sample]),
+                                str(sample_reads_ann[sample]),
+                                '%.10f' % (float(sample_junctions_ann[sample])
+                                            / sample_junctions[sample]),
+                                '%.10f' % (float(sample_reads_ann[sample])
+                                            / sample_reads[sample]),
+                                na_line if sample not in sample_to_metadata
+                                else sample_to_metadata[sample]])
+        for project in project_junctions:
+            print '\t'.join(['project', project,
+                            str(project_junctions[project]),
+                            str(project_junctions_ann[project]),
+                            str(project_reads[project]),
+                            str(project_reads_ann[project]),
+                            '%.10f' % (float(project_junctions_ann[project])
+                                        / project_junctions[project]),
+                            '%.10f' % (float(project_reads_ann[project])
+                                        / project_reads[project]), na_line])
