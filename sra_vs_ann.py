@@ -97,7 +97,7 @@ if __name__ == '__main__':
         for line in extract_process.stdout:
             tokens = line.strip().split('\t')
             tokens[1] = int(tokens[1]) + 2
-            tokens[2] = int(tokens[2]) + 1
+            tokens[2] = int(tokens[2])
             if not tokens[0].startswith('chr'):
                 tokens[0] = 'chr' + tokens[0]
             if tokens[0] in refs:
