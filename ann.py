@@ -81,12 +81,12 @@ if __name__ == '__main__':
         with open(args.sharq) as sharq_stream:
             header = sharq_stream.readline().partition(',')[2].replace(
                         ',', '\t'
-                    )
+                    ).strip()
             for line in sharq_stream:
                 partitioned = line.partition(',')
                 sample_to_metadata[partitioned[0]] = partitioned[2].replace(
                         ',', '\t'
-                    )
+                    ).strip()
 
     annotated_junctions = set()
 
@@ -168,7 +168,7 @@ if __name__ == '__main__':
                             '%.10f' % (float(project_reads_ann[project])
                                         / project_reads[project])])
     else:
-         print '\t'.join(['type', 'accession', 'junctions',
+        print '\t'.join(['type', 'accession', 'junctions',
                             'annotated junctions', 'overlap instances',
                             'annotated overlap instances',
                             'proportion of junctions '
