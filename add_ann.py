@@ -270,7 +270,7 @@ if __name__ == '__main__':
                 annotated_junctions.add(tuple(tokens[:-1]))
                 left = reference_index.get_stretch(tokens[0], tokens[1] - 1, 2)
                 right = reference_index.get_stretch(
-                                    tokens[0], tokens[2] - 3, 2
+                                    tokens[0], tokens[2] - 2, 2
                                 )
                 if (left, right) not in possible_combos: continue
                 itsplus = True
