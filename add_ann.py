@@ -67,7 +67,7 @@ if __name__ == '__main__':
                     annotated_3p.add(tuple(tokens[0], tokens[2]))
                 else:
                     assert tokens[3] == '-'
-                    annotated_5p.add(tuple(tokens[0], tokens[2]))
+                    annotated_5p.add((tokens[0], tokens[2]))
                     annotated_3p.add(tuple(tokens[:-2]))
         extract_process.stdout.close()
         exit_code = extract_process.wait()
