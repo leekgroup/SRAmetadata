@@ -64,7 +64,7 @@ if __name__ == '__main__':
                 annotated_junctions.add(tuple(tokens[:-1]))
                 if tokens[3] == '+':
                     annotated_5p.add(tuple(tokens[:-2]))
-                    annotated_3p.add(tuple(tokens[0], tokens[2]))
+                    annotated_3p.add((tokens[0], tokens[2]))
                 else:
                     assert tokens[3] == '-'
                     annotated_5p.add((tokens[0], tokens[2]))
